@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
-import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /** Unit tests for StringUtil methods. */
 public class TestStringUtil {
 
+  @Test
   public void testRightPad() {
     String s = "my string";
 
     String ps = StringUtil.rightPad(s, 0);
-    Assert.assertTrue(s.equals(ps));
+    assertTrue(s.equals(ps));
 
     ps = StringUtil.rightPad(s, 9);
-    Assert.assertTrue(s.equals(ps));
+    assertTrue(s.equals(ps));
 
     ps = StringUtil.rightPad(s, 10);
-    Assert.assertTrue((s + " ").equals(ps));
+    assertTrue((s + " ").equals(ps));
 
     ps = StringUtil.rightPad(s, 15);
-    Assert.assertTrue((s + "      ").equals(ps));
+    assertTrue((s + "      ").equals(ps));
 
   }
 
@@ -44,16 +46,16 @@ public class TestStringUtil {
     String s = "my string";
 
     String ps = StringUtil.leftPad(s, 0);
-    Assert.assertTrue(s.equals(ps));
+    assertTrue(s.equals(ps));
 
     ps = StringUtil.leftPad(s, 9);
-    Assert.assertTrue(s.equals(ps));
+    assertTrue(s.equals(ps));
 
     ps = StringUtil.leftPad(s, 10);
-    Assert.assertTrue((" " + s).equals(ps));
+    assertTrue((" " + s).equals(ps));
 
     ps = StringUtil.leftPad(s, 15);
-    Assert.assertTrue(("      " + s).equals(ps));
+    assertTrue(("      " + s).equals(ps));
 
   }
 

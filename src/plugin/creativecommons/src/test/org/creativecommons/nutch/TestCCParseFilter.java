@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.creativecommons.nutch;
 
-import org.apache.nutch.metadata.Metadata;
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseUtil;
-import org.apache.nutch.protocol.Content;
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.parse.ParseUtil;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.Bytes;
+import org.apache.nutch.util.MimeUtil;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestCCParseFilter {
 
@@ -48,7 +55,6 @@ public class TestCCParseFilter {
   public void pageTest(File file, String url, String license, String location,
       String type) throws Exception {
 
-    String contentType = "text/html";
     InputStream in = new FileInputStream(file);
     ByteArrayOutputStream out = new ByteArrayOutputStream((int) file.length());
     byte[] buffer = new byte[1024];
@@ -60,13 +66,20 @@ public class TestCCParseFilter {
     byte[] bytes = out.toByteArray();
     Configuration conf = NutchConfiguration.create();
 
-    Content content = new Content(url, url, bytes, contentType, new Metadata(),
-        conf);
-    Parse parse = new ParseUtil(conf).parse(content).get(content.getUrl());
+    WebPage page = WebPage.newBuilder().build();
+    page.setBaseUrl(new Utf8(url));
+    page.setContent(ByteBuffer.wrap(bytes));
+    MimeUtil mimeutil = new MimeUtil(conf);
+    String mtype = mimeutil.getMimeType(file);
+    page.setContentType(new Utf8(mtype));
 
-    Metadata metadata = parse.getData().getParseMeta();
-    Assert.assertEquals(license, metadata.get("License-Url"));
-    Assert.assertEquals(location, metadata.get("License-Location"));
-    Assert.assertEquals(type, metadata.get("Work-Type"));
+    new ParseUtil(conf).parse(url, page);
+
+    ByteBuffer bb = page.getMetadata().get(new Utf8("License-Url"));
+    assertEquals(license, Bytes.toString(bb));
+    bb = page.getMetadata().get(new Utf8("License-Location"));
+    assertEquals(location, Bytes.toString(bb));
+    bb = page.getMetadata().get(new Utf8("Work-Type"));
+    assertEquals(type, Bytes.toString(bb));
   }
 }

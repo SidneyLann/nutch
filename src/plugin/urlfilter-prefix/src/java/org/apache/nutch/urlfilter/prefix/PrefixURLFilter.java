@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,37 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// $Id: PrefixURLFilter.java 823614 2009-10-09 17:02:32Z ab $
+
 package org.apache.nutch.urlfilter.prefix;
 
+import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.*;
 
 import org.apache.nutch.util.PrefixStringMatcher;
 import org.apache.nutch.util.TrieStringMatcher;
-import org.apache.nutch.net.URLFilter;
+
 import org.apache.nutch.plugin.Extension;
 import org.apache.nutch.plugin.PluginRepository;
 
-import java.lang.invoke.MethodHandles;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.ArrayList;
 
 /**
  * Filters URLs based on a file of URL prefixes. The file is named by (1)
- * property "urlfilter.prefix.file" in ./conf/nutch-default.xml, or (2)
- * the attribute "file" in plugin.xml of this plugin.
+ * property "urlfilter.prefix.file" in ./conf/nutch-default.xml, and (2)
+ * attribute "file" in plugin.xml of this plugin Attribute "file" has higher
+ * precedence if defined.
  * 
  * <p>
  * The format of this file is one URL prefix per line.
- * </p>
+ *
  */
 public class PrefixURLFilter implements URLFilter {
 
@@ -76,7 +82,7 @@ public class PrefixURLFilter implements URLFilter {
   private TrieStringMatcher readConfiguration(Reader reader) throws IOException {
 
     BufferedReader in = new BufferedReader(reader);
-    List<String> urlprefixes = new ArrayList<>();
+    List<String> urlprefixes = new ArrayList<String>();
     String line;
 
     while ((line = in.readLine()) != null) {
@@ -105,7 +111,7 @@ public class PrefixURLFilter implements URLFilter {
     else
       filter = new PrefixURLFilter();
 
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     String line;
     while ((line = in.readLine()) != null) {
       String out = filter.filter(line);
@@ -128,39 +134,43 @@ public class PrefixURLFilter implements URLFilter {
         break;
       }
     }
-
-    if (attributeFile != null && attributeFile.trim().isEmpty()) {
+    if (attributeFile != null && attributeFile.trim().equals(""))
       attributeFile = null;
-    }
-
     if (attributeFile != null) {
-      LOG.info("Attribute \"file\" is defined for plugin {} as {}", pluginName, attributeFile);
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Attribute \"file\" is defined for plugin " + pluginName
+            + " as " + attributeFile);
+      }
+    } else {
+      // if (LOG.isWarnEnabled()) {
+      // LOG.warn("Attribute \"file\" is not defined in plugin.xml for
+      // plugin "+pluginName);
+      // }
     }
 
-    // precedence hierarchy for definition of filter rules
-    // (first non-empty definition takes precedence):
-    // 1. string rules defined by `urlfilter.domaindenylist.rules`
-    // 2. rule file name defined by `urlfilter.domaindenylist.file`
-    // 3. rule file name defined in plugin.xml (`attributeFile`)
-    String file = conf.get("urlfilter.prefix.file", attributeFile);
+    String file = conf.get("urlfilter.prefix.file");
     String stringRules = conf.get("urlfilter.prefix.rules");
+    // attribute "file" takes precedence if defined
+    if (attributeFile != null)
+      file = attributeFile;
     Reader reader = null;
     if (stringRules != null) { // takes precedence over files
       reader = new StringReader(stringRules);
     } else {
-      LOG.info("Reading {} rules file {}", pluginName, file);
       reader = conf.getConfResourceAsReader(file);
     }
 
     if (reader == null) {
-      LOG.warn("Missing {} rule file '{}': all URLs will be rejected!",
-          pluginName, file);
       trie = new PrefixStringMatcher(new String[0]);
     } else {
       try {
         trie = readConfiguration(reader);
       } catch (IOException e) {
-        LOG.error("Error reading " + pluginName + " rule file " + file, e);
+        if (LOG.isErrorEnabled()) {
+          LOG.error(e.getMessage());
+        }
+        // TODO mb@media-style.com: throw Exception? Because broken api.
+        throw new RuntimeException(e.getMessage(), e);
       }
     }
   }

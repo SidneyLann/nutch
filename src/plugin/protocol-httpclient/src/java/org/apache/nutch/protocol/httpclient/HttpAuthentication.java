@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -33,7 +33,7 @@ public interface HttpAuthentication {
    * 
    * @return The credentials value
    */
-  public List<String> getCredentials();
+  public List getCredentials();
 
   /**
    * Gets the realm used by the HttpAuthentication object during creation.

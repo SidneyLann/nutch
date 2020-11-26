@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,27 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.TimeUnit;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class TimingUtil {
 
-  /** Formats dates for logging */
-  public static DateTimeFormatter logDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-  /**
-   * Convert epoch milliseconds ({@link System#currentTimeMillis()}) into date
-   * string (local time zone) used for logging
-   */
-  public static String logDateMillis(long millis) {
-    return logDateFormat.format(
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()));
-  }
+  private static long[] TIME_FACTOR = { 60 * 60 * 1000, 60 * 1000, 1000 };
 
   /**
    * Calculate the elapsed time between two times specified in milliseconds.
@@ -50,38 +38,23 @@ public class TimingUtil {
     if (start > end) {
       return null;
     }
-    return secondsToHMS((end-start)/1000);
-  }
-  
-  /**
-   * Show time in seconds as hours, minutes and seconds (hh:mm:ss)
-   * 
-   * @param seconds
-   *          (elapsed) time in seconds
-   * @return human readable time string "hh:mm:ss"
-   */
-  public static String secondsToHMS(long seconds) {
-    long hours = TimeUnit.SECONDS.toHours(seconds);
-    long minutes = TimeUnit.SECONDS.toMinutes(seconds)
-        % TimeUnit.HOURS.toMinutes(1);
-    seconds = TimeUnit.SECONDS.toSeconds(seconds)
-        % TimeUnit.MINUTES.toSeconds(1);
-    return String.format("%02d:%02d:%02d", hours, minutes, seconds);
-  }
 
-  /**
-   * Show time in seconds as days, hours, minutes and seconds (d days, hh:mm:ss)
-   * 
-   * @param seconds
-   *          (elapsed) time in seconds
-   * @return human readable time string "d days, hh:mm:ss"
-   */
-  public static String secondsToDaysHMS(long seconds) {
-    long days = TimeUnit.SECONDS.toDays(seconds);
-    if (days == 0)
-      return secondsToHMS(seconds);
-    String hhmmss = secondsToHMS(seconds % TimeUnit.DAYS.toSeconds(1));
-    return String.format("%d days, %s", days, hhmmss);
-  }
+    long[] elapsedTime = new long[TIME_FACTOR.length];
 
+    for (int i = 0; i < TIME_FACTOR.length; i++) {
+      elapsedTime[i] = start > end ? -1 : (end - start) / TIME_FACTOR[i];
+      start += TIME_FACTOR[i] * elapsedTime[i];
+    }
+
+    NumberFormat nf = NumberFormat.getInstance(Locale.ROOT);
+    nf.setMinimumIntegerDigits(2);
+    StringBuffer buf = new StringBuffer();
+    for (int i = 0; i < elapsedTime.length; i++) {
+      if (i > 0) {
+        buf.append(":");
+      }
+      buf.append(nf.format(elapsedTime[i]));
+    }
+    return buf.toString();
+  }
 }

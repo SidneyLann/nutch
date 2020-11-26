@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse;
 
 import java.lang.invoke.MethodHandles;
@@ -128,7 +129,7 @@ public class OutlinkExtractor {
     final Outlink[] retval;
 
     // create array of the Outlinks
-    if (outlinks.size() > 0) {
+    if (outlinks != null && outlinks.size() > 0) {
       retval = outlinks.toArray(new Outlink[0]);
     } else {
       retval = new Outlink[0];

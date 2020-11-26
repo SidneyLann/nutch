@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -17,21 +17,30 @@
 package org.apache.nutch.parse.metatags;
 
 import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Map.Entry;
+import java.nio.charset.StandardCharsets;
 
+import org.apache.avro.util.Utf8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.parse.HTMLMetaTags;
-import org.apache.nutch.parse.HtmlParseFilter;
 import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseResult;
-import org.apache.nutch.protocol.Content;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.nutch.parse.ParseFilter;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.Bytes;
 import org.w3c.dom.DocumentFragment;
 
 /**
@@ -39,12 +48,14 @@ import org.w3c.dom.DocumentFragment;
  * metadata so that they can be indexed with the index-metadata plugin with the
  * prefix 'metatag.'. Metatags are matched ignoring case.
  */
-public class MetaTagsParser implements HtmlParseFilter {
+public class MetaTagsParser implements ParseFilter {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
   private Configuration conf;
+
+  public static final String PARSE_META_PREFIX = "meta_";
 
   private Set<String> metatagset = new HashSet<String>();
 
@@ -66,60 +77,65 @@ public class MetaTagsParser implements HtmlParseFilter {
    * Check whether the metatag is in the list of metatags to be indexed (or if
    * '*' is specified). If yes, add it to parse metadata.
    */
-  private void addIndexedMetatags(Metadata metadata, String metatag,
-      String value) {
+  private void addIndexedMetatags(Map<CharSequence, ByteBuffer> metadata,
+      String metatag, String value) {
     String lcMetatag = metatag.toLowerCase(Locale.ROOT);
     if (metatagset.contains("*") || metatagset.contains(lcMetatag)) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Found meta tag: {}\t{}", lcMetatag, value);
+        LOG.debug("Found meta tag: " + lcMetatag + "\t" + value);
       }
-      metadata.add("metatag." + lcMetatag, value);
+      metadata.put(new Utf8(PARSE_META_PREFIX + lcMetatag),
+          ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8)));
     }
   }
 
-  /**
-   * Check whether the metatag is in the list of metatags to be indexed (or if
-   * '*' is specified). If yes, add it with all values to parse metadata.
-   */
-  private void addIndexedMetatags(Metadata metadata, String metatag,
-      String[] values) {
-    String lcMetatag = metatag.toLowerCase(Locale.ROOT);
-    if (metatagset.contains("*") || metatagset.contains(lcMetatag)) {
-      String key = "metatag." + lcMetatag;
-      for (String value : values) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Found meta tag: {}\t{}", lcMetatag, value);
-        }
-        metadata.add(key, value);
-      }
-    }
-  }
-
-  public ParseResult filter(Content content, ParseResult parseResult,
+  public Parse filter(String url, WebPage page, Parse parse,
       HTMLMetaTags metaTags, DocumentFragment doc) {
 
-    Parse parse = parseResult.get(content.getUrl());
-    Metadata metadata = parse.getData().getParseMeta();
+    // temporary map: cannot concurrently iterate over and modify page metadata
+    Map<CharSequence, ByteBuffer> metadata = new HashMap<CharSequence, ByteBuffer>();
 
-    /*
-     * NUTCH-1559: do not extract meta values from ParseData's metadata to avoid
-     * duplicate metatag values
-     */
+    // check in the metadata first : the tika-parser
+    // might have stored the values there already.
+    // Values are then additionally stored with the prefixed key.
+    for (Entry<CharSequence, ByteBuffer> entry : page.getMetadata().entrySet()) {
+      String mdName = entry.getKey().toString();
+      String value = Bytes.toStringBinary(entry.getValue());
+      addIndexedMetatags(metadata, mdName, value);
+    }
+
+    // add temporary metadata to page metadata
+    for (Entry<CharSequence, ByteBuffer> entry : metadata.entrySet()) {
+      page.getMetadata().put(entry.getKey(), entry.getValue());
+    }
 
     Metadata generalMetaTags = metaTags.getGeneralTags();
     for (String tagName : generalMetaTags.names()) {
-      addIndexedMetatags(metadata, tagName, generalMetaTags.getValues(tagName));
+      // multiple values of a metadata field are separated by '\t' in storage.
+      StringBuilder sb = new StringBuilder();
+      for (String value : generalMetaTags.getValues(tagName)) {
+        if (sb.length() > 0) {
+          sb.append("\t");
+        }
+        sb.append(value);
+      }
+      addIndexedMetatags(page.getMetadata(), tagName, sb.toString());
     }
 
     Properties httpequiv = metaTags.getHttpEquivTags();
-    for (Enumeration<?> tagNames = httpequiv.propertyNames(); tagNames
-        .hasMoreElements();) {
+    Enumeration<?> tagNames = httpequiv.propertyNames();
+    while (tagNames.hasMoreElements()) {
       String name = (String) tagNames.nextElement();
       String value = httpequiv.getProperty(name);
-      addIndexedMetatags(metadata, name, value);
+      addIndexedMetatags(page.getMetadata(), name, value);
     }
 
-    return parseResult;
+    return parse;
+  }
+
+  @Override
+  public Collection<Field> getFields() {
+    return null;
   }
 
 }

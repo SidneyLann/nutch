@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.conf.*;
-import org.junit.Assert;
+
+import junit.framework.TestCase;
 
 public class WritableTestUtils {
 
@@ -30,7 +32,7 @@ public class WritableTestUtils {
   /** Utility method for testing writables. */
   public static void testWritable(Writable before, Configuration conf)
       throws Exception {
-    Assert.assertEquals(before, writeRead(before, conf));
+    TestCase.assertEquals(before, writeRead(before, conf));
   }
 
   /** Utility method for testing writables. */
@@ -43,7 +45,7 @@ public class WritableTestUtils {
     DataInputBuffer dib = new DataInputBuffer();
     dib.reset(dob.getData(), dob.getLength());
 
-    Writable after = (Writable) before.getClass().getConstructor().newInstance();
+    Writable after = (Writable) before.getClass().newInstance();
     if (conf != null) {
       ((Configurable) after).setConf(conf);
     }

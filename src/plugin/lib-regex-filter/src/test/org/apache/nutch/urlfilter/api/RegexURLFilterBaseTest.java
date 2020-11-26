@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,38 +22,50 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Assert;
+import static org.junit.Assert.*;
+
+// Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // Nutch imports
 import org.apache.nutch.net.URLFilter;
+//import org.apache.nutch.urlfilter.automaton.TestAutomatonURLFilter;
+//import org.apache.nutch.urlfilter.regex.TestRegexURLFilter;
+
+//import org.junit.runners.Suite;
+//import org.junit.runner.RunWith;
 
 /**
  * JUnit based test of class <code>RegexURLFilterBase</code>.
- * 
- * @author J&eacute;r&ocirc;me Charron
  */
+
+// @RunWith(Suite.class)
+// @Suite.SuiteClasses({TestAutomatonURLFilter.class, TestRegexURLFilter.class})
 public abstract class RegexURLFilterBaseTest {
 
   /** My logger */
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
-  protected final static String SEPARATOR = System.getProperty("file.separator");
-  protected final static String SAMPLES = System.getProperty("test.data", ".");
+  private final static String SEPARATOR = System.getProperty("file.separator");
+  private final static String SAMPLES = System.getProperty("test.data", ".");
 
   protected abstract URLFilter getURLFilter(Reader rules);
 
   protected void bench(int loops, String file) {
     try {
-      bench(loops, new FileReader(SAMPLES + SEPARATOR + file + ".rules"),
-          new FileReader(SAMPLES + SEPARATOR + file + ".urls"));
+      bench(loops, new InputStreamReader(new FileInputStream(SAMPLES + SEPARATOR + file + ".rules"), StandardCharsets.UTF_8),
+          new InputStreamReader(new FileInputStream(SAMPLES + SEPARATOR + file + ".urls"), StandardCharsets.UTF_8));
     } catch (Exception e) {
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
   }
 
@@ -66,36 +78,18 @@ public abstract class RegexURLFilterBaseTest {
         test(filter, expected);
       }
     } catch (Exception e) {
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
     LOG.info("bench time (" + loops + ") "
         + (System.currentTimeMillis() - start) + "ms");
   }
 
-  protected void bench(int loops, String rulesFile, String urlsFile) {
-    try {
-      bench(loops, new FileReader(SAMPLES + SEPARATOR + rulesFile),
-          new FileReader(SAMPLES + SEPARATOR + urlsFile));
-    } catch (Exception e) {
-      Assert.fail(e.toString());
-    }
-  }
-
-  protected void test(String rulesFile, String urlsFile) {
-    try {
-      test(new FileReader(SAMPLES + SEPARATOR + rulesFile),
-          new FileReader(SAMPLES + SEPARATOR + urlsFile));
-    } catch (Exception e) {
-      Assert.fail(e.toString());
-    }
-  }
-
   protected void test(String file) {
     try {
-      test(new FileReader(SAMPLES + SEPARATOR + file + ".rules"),
-          new FileReader(SAMPLES + SEPARATOR + file + ".urls"));
+      test(new InputStreamReader(new FileInputStream(SAMPLES + SEPARATOR + file + ".rules"), StandardCharsets.UTF_8),
+          new InputStreamReader(new FileInputStream(SAMPLES + SEPARATOR + file + ".urls"), StandardCharsets.UTF_8));
     } catch (Exception e) {
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
   }
 
@@ -103,7 +97,7 @@ public abstract class RegexURLFilterBaseTest {
     try {
       test(getURLFilter(rules), readURLFile(urls));
     } catch (Exception e) {
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
   }
 
@@ -111,9 +105,9 @@ public abstract class RegexURLFilterBaseTest {
     for (int i = 0; i < expected.length; i++) {
       String result = filter.filter(expected[i].url);
       if (result != null) {
-        Assert.assertTrue(expected[i].url, expected[i].sign);
+        assertTrue(expected[i].url, expected[i].sign);
       } else {
-        Assert.assertFalse(expected[i].url, expected[i].sign);
+        assertFalse(expected[i].url, expected[i].sign);
       }
     }
   }

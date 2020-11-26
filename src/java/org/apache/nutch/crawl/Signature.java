@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,23 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.crawl;
 
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.protocol.Content;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configurable;
+import java.util.Collection;
 
-public abstract class Signature implements Configurable {
-  protected Configuration conf;
+import org.apache.hadoop.conf.Configured;
+import org.apache.nutch.storage.WebPage;
 
-  public abstract byte[] calculate(Content content, Parse parse);
+public abstract class Signature extends Configured {
 
-  public Configuration getConf() {
-    return conf;
-  }
+  public abstract byte[] calculate(WebPage page);
 
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-  }
+  public abstract Collection<WebPage.Field> getFields();
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.indexer;
 
+// Hadoop imports
 import org.apache.hadoop.conf.Configurable;
-import org.apache.hadoop.io.Text;
-
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
-import org.apache.nutch.plugin.Pluggable;
+import org.apache.nutch.plugin.FieldPluggable;
+import org.apache.nutch.storage.WebPage;
 
 /**
  * Extension point for indexing. Permits one to add metadata to the indexed
  * fields. All plugins found which implement this extension point are run
  * sequentially on the parse.
  */
-public interface IndexingFilter extends Pluggable, Configurable {
+public interface IndexingFilter extends FieldPluggable, Configurable {
   /** The name of the extension point. */
   final static String X_POINT_ID = IndexingFilter.class.getName();
 
@@ -40,19 +38,13 @@ public interface IndexingFilter extends Pluggable, Configurable {
    * 
    * @param doc
    *          document instance for collecting fields
-   * @param parse
-   *          parse data instance
    * @param url
    *          page url
-   * @param datum
-   *          crawl datum for the page (fetch datum from segment containing
-   *          fetch status and fetch time)
-   * @param inlinks
-   *          page inlinks
+   * @param page
    * @return modified (or a new) document instance, or null (meaning the
    *         document should be discarded)
    * @throws IndexingException
    */
-  NutchDocument filter(NutchDocument doc, Parse parse, Text url,
-      CrawlDatum datum, Inlinks inlinks) throws IndexingException;
+  NutchDocument filter(NutchDocument doc, String url, WebPage page)
+      throws IndexingException;
 }

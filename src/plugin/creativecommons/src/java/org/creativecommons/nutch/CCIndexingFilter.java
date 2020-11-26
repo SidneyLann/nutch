@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,30 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.creativecommons.nutch;
 
-import org.apache.nutch.metadata.CreativeCommons;
-
-import org.apache.nutch.parse.Parse;
-
-import org.apache.nutch.indexer.IndexingFilter;
-import org.apache.nutch.indexer.IndexingException;
-import org.apache.nutch.indexer.NutchDocument;
-import org.apache.hadoop.io.Text;
-
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
-import org.apache.nutch.metadata.Metadata;
-
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
-
+import org.apache.nutch.indexer.IndexingException;
+import org.apache.nutch.indexer.IndexingFilter;
+import org.apache.nutch.indexer.NutchDocument;
+import org.apache.nutch.metadata.CreativeCommons;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.util.StringTokenizer;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.StringTokenizer;
 
 /** Adds basic searchable fields to a document. */
 public class CCIndexingFilter implements IndexingFilter {
@@ -49,37 +47,11 @@ public class CCIndexingFilter implements IndexingFilter {
 
   private Configuration conf;
 
-  public NutchDocument filter(NutchDocument doc, Parse parse, Text url,
-      CrawlDatum datum, Inlinks inlinks) throws IndexingException {
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
 
-    Metadata metadata = parse.getData().getParseMeta();
-    // index the license
-    String licenseUrl = metadata.get(CreativeCommons.LICENSE_URL);
-    if (licenseUrl != null) {
-      if (LOG.isInfoEnabled()) {
-        LOG.info("CC: indexing " + licenseUrl + " for: " + url.toString());
-      }
-
-      // add the entire license as cc:license=xxx
-      addFeature(doc, "license=" + licenseUrl);
-
-      // index license attributes extracted of the license url
-      addUrlFeatures(doc, licenseUrl);
-    }
-
-    // index the license location as cc:meta=xxx
-    String licenseLocation = metadata.get(CreativeCommons.LICENSE_LOCATION);
-    if (licenseLocation != null) {
-      addFeature(doc, "meta=" + licenseLocation);
-    }
-
-    // index the work type cc:type=xxx
-    String workType = metadata.get(CreativeCommons.WORK_TYPE);
-    if (workType != null) {
-      addFeature(doc, workType);
-    }
-
-    return doc;
+  static {
+    FIELDS.add(WebPage.Field.BASE_URL);
+    FIELDS.add(WebPage.Field.METADATA);
   }
 
   /**
@@ -119,6 +91,49 @@ public class CCIndexingFilter implements IndexingFilter {
 
   public Configuration getConf() {
     return this.conf;
+  }
+
+  @Override
+  public Collection<Field> getFields() {
+    return FIELDS;
+  }
+
+  @Override
+  public NutchDocument filter(NutchDocument doc, String url, WebPage page)
+      throws IndexingException {
+
+    ByteBuffer blicense = page.getMetadata().get(
+        new Utf8(CreativeCommons.LICENSE_URL));
+    if (blicense != null) {
+      String licenseUrl = Bytes.toString(blicense);
+      if (LOG.isInfoEnabled()) {
+        LOG.info("CC: indexing " + licenseUrl + " for: " + url.toString());
+      }
+
+      // add the entire license as cc:license=xxx
+      addFeature(doc, "license=" + licenseUrl);
+
+      // index license attributes extracted of the license url
+      addUrlFeatures(doc, licenseUrl);
+    }
+
+    // index the license location as cc:meta=xxx
+    ByteBuffer blicenseloc = page.getMetadata().get(
+        new Utf8(CreativeCommons.LICENSE_LOCATION));
+    if (blicenseloc != null) {
+      String licenseLocation = Bytes.toString(blicenseloc);
+      addFeature(doc, "meta=" + licenseLocation);
+    }
+
+    // index the work type cc:type=xxx
+    ByteBuffer bworkType = page.getMetadata().get(
+        new Utf8(CreativeCommons.WORK_TYPE));
+    if (bworkType != null) {
+      String workType = Bytes.toString(bworkType);
+      addFeature(doc, workType);
+    }
+
+    return doc;
   }
 
 }

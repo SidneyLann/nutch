@@ -22,6 +22,7 @@
   <!-- Build compilation dependencies -->
   <target name="deps-jar">
     <ant target="jar" inheritall="false" dir="../lib-regex-filter"/>
+    <ant target="compile-test" inheritall="false" dir="../lib-regex-filter"/>
   </target>
 
   <!-- Add compilation dependencies to classpath -->
@@ -31,11 +32,6 @@
     </fileset>
     <pathelement location="${nutch.root}/build/lib-regex-filter/test"/>
   </path>
-
-  <!-- Compile test classes for dependencies -->
-  <target name="deps-test-compile">
-    <ant target="compile-test" inheritall="false" dir="../lib-regex-filter"/>
-  </target>
 
   <!-- Deploy Unit test dependencies -->
   <target name="deps-test">

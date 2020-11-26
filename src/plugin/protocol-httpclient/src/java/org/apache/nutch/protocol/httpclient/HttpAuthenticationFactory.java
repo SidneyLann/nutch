@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,16 +16,23 @@
  */
 package org.apache.nutch.protocol.httpclient;
 
+// JDK imports
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 
+// Commons Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Hadoop imports
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configurable;
 
+// Nutch imports
 import org.apache.nutch.metadata.Metadata;
 
 /**
@@ -50,45 +57,86 @@ public class HttpAuthenticationFactory implements Configurable {
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
+  private static Map<?, ?> auths = new TreeMap<Object, Object>();
+
   private Configuration conf = null;
 
   public HttpAuthenticationFactory(Configuration conf) {
     setConf(conf);
   }
 
+  /*
+   * ---------------------------------- * <implementation:Configurable> *
+   * ----------------------------------
+   */
+
   public void setConf(Configuration conf) {
     this.conf = conf;
+    // if (conf.getBoolean("http.auth.verbose", false)) {
+    // LOG.setLevel(Level.FINE);
+    // } else {
+    // LOG.setLevel(Level.WARNING);
+    // }
   }
 
   public Configuration getConf() {
     return conf;
   }
 
+  /*
+   * ---------------------------------- * <implementation:Configurable> *
+   * ----------------------------------
+   */
+
+  @SuppressWarnings("unchecked")
   public HttpAuthentication findAuthentication(Metadata header) {
 
     if (header == null)
       return null;
 
     try {
-      Collection<String> challenge = new ArrayList<String>();
-      challenge.add(header.get(WWW_AUTHENTICATE));
+      Collection challenge = null;
+      if (header instanceof Metadata) {
+        Object o = header.get(WWW_AUTHENTICATE);
+        if (o instanceof Collection) {
+          challenge = (Collection<?>) o;
+        } else {
+          challenge = new ArrayList<String>();
+          challenge.add(o.toString());
+        }
+      } else {
+        String challengeString = header.get(WWW_AUTHENTICATE);
+        if (challengeString != null) {
+          challenge = new ArrayList<Object>();
+          challenge.add(challengeString);
+        }
+      }
+      if (challenge == null) {
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("Authentication challenge is null");
+        }
+        return null;
+      }
 
-      for (String challengeString : challenge) {
-        if (challengeString.equals("NTLM"))
+      Iterator<?> i = challenge.iterator();
+      HttpAuthentication auth = null;
+      while (i.hasNext() && auth == null) {
+        String challengeString = (String) i.next();
+        if (challengeString.equals("NTLM")) {
           challengeString = "Basic realm=techweb";
+        }
 
-        if (LOG.isTraceEnabled())
+        if (LOG.isTraceEnabled()) {
           LOG.trace("Checking challengeString=" + challengeString);
-
-        HttpAuthentication auth = HttpBasicAuthentication.getAuthentication(
-            challengeString, conf);
+        }
+        auth = HttpBasicAuthentication.getAuthentication(challengeString, conf);
         if (auth != null)
           return auth;
 
         // TODO Add additional Authentication lookups here
       }
     } catch (Exception e) {
-      LOG.error("Error: ", e);
+      LOG.error("Failed with following exception: ", e);
     }
     return null;
   }

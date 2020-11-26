@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nutch.protocol.http;
 
-import static org.junit.Assert.assertEquals;
+package org.apache.nutch.protocol.http;
 
 import java.net.URL;
 
+import org.junit.After;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
 import org.apache.nutch.net.protocols.Response;
 import org.apache.nutch.protocol.Content;
 import org.apache.nutch.protocol.ProtocolOutput;
-import org.junit.After;
-import org.junit.Test;
+import org.apache.nutch.storage.WebPage;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.servlet.Context;
@@ -46,26 +46,26 @@ public class TestProtocolHttp {
   private int port;
 
   public void setUp(boolean redirection) throws Exception {
-    conf = new Configuration();
-    conf.addResource("nutch-default.xml");
-    conf.addResource("nutch-site-test.xml");
+    this.conf = new Configuration();
+    this.conf.addResource("nutch-default.xml");
+    this.conf.addResource("nutch-site-test.xml");
 
-    http = new Http();
-    http.setConf(conf);
+    this.http = new Http();
+    this.http.setConf(conf);
 
-    server = new Server();
+    this.server = new Server();
 
     if (redirection) {
-      root = new Context(server, "/redirection", Context.SESSIONS);
-      root.setAttribute("newContextURL", "/redirect");
+      this.root = new Context(server, "/redirection", Context.SESSIONS);
+      this.root.setAttribute("newContextURL", "/redirect");
     } else {
-      root = new Context(server, "/", Context.SESSIONS);
+      this.root = new Context(server, "/", Context.SESSIONS);
     }
 
     ServletHolder sh = new ServletHolder(
         org.apache.jasper.servlet.JspServlet.class);
-    root.addServlet(sh, "*.jsp");
-    root.setResourceBase(RES_DIR);
+    this.root.addServlet(sh, "*.jsp");
+    this.root.setResourceBase(RES_DIR);
   }
 
   @After
@@ -75,7 +75,7 @@ public class TestProtocolHttp {
 
   @Test
   public void testStatusCode() throws Exception {
-    startServer(47504, false);
+    startServer(47501, false);
     fetchPage("/basic-http.jsp", 200);
     fetchPage("/redirect301.jsp", 301);
     fetchPage("/redirect302.jsp", 302);
@@ -86,7 +86,7 @@ public class TestProtocolHttp {
   @Test
   public void testRedirectionJetty() throws Exception {
     // Redirection via Jetty
-    startServer(47503, true);
+    startServer(47500, true);
     fetchPage("/redirection", 302);
   }
 
@@ -121,19 +121,17 @@ public class TestProtocolHttp {
    */
   private void fetchPage(String page, int expectedCode) throws Exception {
     URL url = new URL("http", "127.0.0.1", port, page);
-    CrawlDatum crawlDatum = new CrawlDatum();
-    Response response = http.getResponse(url, crawlDatum, true);
-    ProtocolOutput out = http.getProtocolOutput(new Text(url.toString()),
-        crawlDatum);
+    WebPage p = WebPage.newBuilder().build();
+    Response response = http.getResponse(url, p, true);
+    ProtocolOutput out = http.getProtocolOutput(url.toString(), p);
     Content content = out.getContent();
+
     assertEquals("HTTP Status Code for " + url, expectedCode,
         response.getCode());
-
     if (page.compareTo("/nonexists.html") != 0
         && page.compareTo("/brokenpage.jsp") != 0
-        && page.compareTo("/redirection") != 0) {
+        && page.compareTo("/redirection") != 0)
       assertEquals("ContentType " + url, "text/html",
           content.getContentType());
-    }
   }
 }

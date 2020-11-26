@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util.domain;
 
 import java.io.InputStream;
@@ -34,7 +35,7 @@ public class DomainSuffixes {
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
-  private HashMap<String, DomainSuffix> domains = new HashMap<>();
+  private HashMap<String, DomainSuffix> domains = new HashMap<String, DomainSuffix>();
 
   private static DomainSuffixes instance;
 
@@ -53,7 +54,7 @@ public class DomainSuffixes {
   /**
    * Singleton instance, lazy instantination
    * 
-   * @return returns the domain suffix instance
+   * @return
    */
   public static DomainSuffixes getInstance() {
     if (instance == null) {

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
 import java.io.ByteArrayOutputStream;
@@ -23,6 +24,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+// Commons Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,19 +130,19 @@ public class GZIPUtils {
       try {
         outStream.write(in);
       } catch (Exception e) {
-        LOG.error("Error writing outStream: ", e);
+        LOG.error("Failed to get outStream.write input", e);
       }
 
       try {
         outStream.close();
       } catch (IOException e) {
-        LOG.error("Error closing outStream: ", e);
+        LOG.error("Failed to implement outStream.close", e);
       }
 
       return byteOut.toByteArray();
 
     } catch (IOException e) {
-      LOG.error("Error: ", e);
+      LOG.error("Failed with IOException", e);
       return null;
     }
   }

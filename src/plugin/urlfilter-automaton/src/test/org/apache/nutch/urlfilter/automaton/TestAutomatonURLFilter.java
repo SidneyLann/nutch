@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -21,10 +21,11 @@ import java.io.IOException;
 import java.io.Reader;
 
 import org.apache.nutch.net.*;
+
 // Nutch imports
 import org.apache.nutch.urlfilter.api.RegexURLFilterBaseTest;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * JUnit based test of class <code>AutomatonURLFilter</code>.
@@ -37,7 +38,7 @@ public class TestAutomatonURLFilter extends RegexURLFilterBaseTest {
     try {
       return new AutomatonURLFilter(rules);
     } catch (IOException e) {
-      Assert.fail(e.toString());
+      fail(e.toString());
       return null;
     }
   }

@@ -16,47 +16,48 @@
  */
 package org.apache.nutch.parse.js;
 
-import java.lang.invoke.MethodHandles;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.parse.HTMLMetaTags;
-import org.apache.nutch.parse.HtmlParseFilter;
 import org.apache.nutch.parse.Outlink;
 import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.parse.ParseImpl;
-import org.apache.nutch.parse.ParseResult;
-import org.apache.nutch.parse.ParseText;
-import org.apache.nutch.parse.ParseStatus;
+import org.apache.nutch.parse.ParseFilter;
+import org.apache.nutch.parse.ParseStatusUtils;
 import org.apache.nutch.parse.Parser;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.storage.ParseStatus;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.Bytes;
 import org.apache.nutch.util.NutchConfiguration;
-import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * This class is a heuristic link extractor for JavaScript files and code
  * snippets. The general idea of a two-pass regex matching comes from Heritrix.
- * Parts of the code come from OutlinkExtractor.java
+ * Parts of the code come from OutlinkExtractor.java by Stephan Strittmatter.
+ * 
+ * @author Andrzej Bialecki &lt;ab@getopt.org&gt;
  */
-public class JSParseFilter implements HtmlParseFilter, Parser {
+public class JSParseFilter implements ParseFilter, Parser {
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
@@ -65,43 +66,37 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
   private Configuration conf;
 
   /**
-   * Scan the JavaScript fragments of a HTML page looking for possible {@link Outlink}'s
+   * Scan the JavaScript looking for possible {@link Outlink}'s
    * 
-   * @param content
-   *          page content
-   * @param parseResult
-   *          parsed content, result of running the HTML parser
+   * @param url
+   *          URL of the {@link WebPage} to be parsed
+   * @param page
+   *          {@link WebPage} object relative to the URL
+   * @param parse
+   *          {@link Parse} object holding parse status
    * @param metaTags
    *          within the {@link HTMLMetaTags}
    * @param doc
    *          The {@link DocumentFragment} object
-   * @return parse the actual {@link ParseResult} object with additional outlinks from JavaScript
+   * @return parse the actual {@link Parse} object with additional outlinks from JavaScript
    */
   @Override
-  public ParseResult filter(Content content, ParseResult parseResult,
+  public Parse filter(String url, WebPage page, Parse parse,
       HTMLMetaTags metaTags, DocumentFragment doc) {
 
-    Parse parse = parseResult.get(content.getUrl());
-
-    String url = content.getBaseUrl();
     ArrayList<Outlink> outlinks = new ArrayList<Outlink>();
     walk(doc, parse, metaTags, url, outlinks);
     if (outlinks.size() > 0) {
-      Outlink[] old = parse.getData().getOutlinks();
-      String title = parse.getData().getTitle();
+      Outlink[] old = parse.getOutlinks();
+      String title = parse.getTitle();
       List<Outlink> list = Arrays.asList(old);
       outlinks.addAll(list);
-      ParseStatus status = parse.getData().getStatus();
+      ParseStatus status = parse.getParseStatus();
       String text = parse.getText();
-      Outlink[] newlinks = (Outlink[]) outlinks.toArray(new Outlink[outlinks
-          .size()]);
-      ParseData parseData = new ParseData(status, title, newlinks, parse
-          .getData().getContentMeta(), parse.getData().getParseMeta());
-
-      // replace original parse obj with new one
-      parseResult.put(content.getUrl(), new ParseText(text), parseData);
+      Outlink[] newlinks = outlinks.toArray(new Outlink[outlinks.size()]);
+      return new Parse(text, title, newlinks, status);
     }
-    return parseResult;
+    return parse;
   }
 
   private void walk(Node n, Parse parse, HTMLMetaTags metaTags, String base,
@@ -109,11 +104,13 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
     if (n instanceof Element) {
       String name = n.getNodeName();
       if (name.equalsIgnoreCase("script")) {
-        /*
-         * String lang = null; Node lNode =
-         * n.getAttributes().getNamedItem("language"); if (lNode == null) lang =
-         * "javascript"; else lang = lNode.getNodeValue();
-         */
+        @SuppressWarnings("unused")
+        String lang = null;
+        Node lNode = n.getAttributes().getNamedItem("language");
+        if (lNode == null)
+          lang = "javascript";
+        else
+          lang = lNode.getNodeValue();
         StringBuffer script = new StringBuffer();
         NodeList nn = n.getChildNodes();
         if (nn.getLength() > 0) {
@@ -122,6 +119,7 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
               script.append('\n');
             script.append(nn.item(i).getNodeValue());
           }
+          // This logging makes the output very messy.
           // if (LOG.isInfoEnabled()) {
           // LOG.info("script: language=" + lang + ", text: " +
           // script.toString());
@@ -148,7 +146,7 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
             links = getJSLinks(anode.getNodeValue(), "", base);
           } else if (anode.getNodeName().equalsIgnoreCase("href")) {
             String val = anode.getNodeValue();
-            if (val != null && val.toLowerCase().indexOf("javascript:") != -1) {
+            if (val != null && val.toLowerCase(Locale.ROOT).indexOf("javascript:") != -1) {
               links = getJSLinks(val, "", base);
             }
           }
@@ -166,14 +164,16 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
   /**
    * Parse a JavaScript file and extract outlinks
    * 
-   * @param c
-   *          page content
+   * @param url
+   *          URL of the {@link WebPage} which is parsed
+   * @param page
+   *          {@link WebPage} object relative to the URL
    * @return parse the actual {@link Parse} object
    */
   @Override
-  public ParseResult getParse(Content c) {
-    String script = new String(c.getContent());
-    Outlink[] outlinks = getJSLinks(script, "", c.getUrl());
+  public Parse getParse(String url, WebPage page) {
+    String script = Bytes.toString(page.getContent());
+    Outlink[] outlinks = getJSLinks(script, "", url);
     if (outlinks == null)
       outlinks = new Outlink[0];
     // Title? use the first line of the script...
@@ -187,9 +187,9 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
       idx = Math.min(MAX_TITLE_LEN, script.length());
       title = script.substring(0, idx);
     }
-    ParseData pd = new ParseData(ParseStatus.STATUS_SUCCESS, title, outlinks,
-        c.getMetadata());
-    return ParseResult.createParseResult(c.getUrl(), new ParseImpl(script, pd));
+    Parse parse = new Parse(script, title, outlinks,
+        ParseStatusUtils.STATUS_SUCCESS);
+    return parse;
   }
 
   private static final Pattern STRING_PATTERN = Pattern.compile(
@@ -302,11 +302,28 @@ public class JSParseFilter implements HtmlParseFilter, Parser {
       System.out.println(" - " + links[i]);
   }
 
+  /**
+   * Set the {@link Configuration} object
+   */
   public void setConf(Configuration conf) {
     this.conf = conf;
   }
 
+  /**
+   * Get the {@link Configuration} object
+   */
   public Configuration getConf() {
     return this.conf;
   }
+
+  /**
+   * Gets all the fields for a given {@link WebPage} Many datastores need to
+   * setup the mapreduce job by specifying the fields needed. All extensions
+   * that work on WebPage are able to specify what fields they need.
+   */
+  @Override
+  public Collection<WebPage.Field> getFields() {
+    return null;
+  }
+
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,6 +16,7 @@
  */
 package org.apache.nutch.parse;
 
+// JDK imports
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URL;
@@ -32,11 +33,14 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
+// Commons Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Hadoop imports
 import org.apache.hadoop.conf.Configuration;
 
+// Nutch imports
 import org.apache.nutch.util.NutchConfiguration;
 
 /**
@@ -46,7 +50,7 @@ import org.apache.nutch.util.NutchConfiguration;
  * @author mattmann
  * @version 1.0
  */
-class ParsePluginsReader {
+public class ParsePluginsReader {
 
   /* our log stream */
   private static final Logger LOG = LoggerFactory
@@ -66,12 +70,10 @@ class ParsePluginsReader {
 
   /**
    * Reads the <code>parse-plugins.xml</code> file and returns the
-   * {@link #ParsePluginList} defined by it.
+   * {@link ParsePluginList} defined by it.
    * 
-   * @return A {@link #ParsePluginList} specified by the
+   * @return A {@link ParsePluginList} specified by the
    *         <code>parse-plugins.xml</code> file.
-   * @throws Exception
-   *           If any parsing error occurs.
    */
   public ParsePluginList parse(Configuration conf) {
 
@@ -137,7 +139,7 @@ class ParsePluginsReader {
       // a separate list, and then insert them into the final list at the
       // order specified
       if (pluginList != null && pluginList.getLength() > 0) {
-        List<String> plugList = new ArrayList<>(pluginList.getLength());
+        List<String> plugList = new ArrayList<String>(pluginList.getLength());
 
         for (int j = 0; j < pluginList.getLength(); j++) {
           Element plugin = (Element) pluginList.item(j);
@@ -235,10 +237,10 @@ class ParsePluginsReader {
 
   private Map<String, String> getAliases(Element parsePluginsRoot) {
 
-    Map<String, String> aliases = new HashMap<>();
+    Map<String, String> aliases = new HashMap<String, String>();
     NodeList aliasRoot = parsePluginsRoot.getElementsByTagName("aliases");
 
-    if (aliasRoot == null || aliasRoot.getLength() == 0) {
+    if (aliasRoot == null || (aliasRoot != null && aliasRoot.getLength() == 0)) {
       if (LOG.isWarnEnabled()) {
         LOG.warn("No aliases defined in parse-plugins.xml!");
       }

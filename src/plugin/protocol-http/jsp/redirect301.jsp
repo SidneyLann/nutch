@@ -21,7 +21,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
 %>
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <base href="<%=basePath%>">
     
@@ -41,7 +41,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
   <body>
        <%
 	response.setStatus(301);
-	response.setHeader( "Location", "https://nutch.apache.org/");
+	response.setHeader( "Location", "http://nutch.apache.org");
 	response.setHeader( "Connection", "close" );
 		%> 
     You are redirected by JSP<br>

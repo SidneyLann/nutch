@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,23 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.scoring.tld;
 
-import java.util.List;
 import java.util.Collection;
-import java.util.Map.Entry;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
 import org.apache.nutch.indexer.NutchDocument;
-import org.apache.nutch.indexer.NutchField;
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.scoring.ScoreDatum;
 import org.apache.nutch.scoring.ScoringFilter;
 import org.apache.nutch.scoring.ScoringFilterException;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.domain.DomainSuffix;
 import org.apache.nutch.util.domain.DomainSuffixes;
 
@@ -44,56 +41,10 @@ public class TLDScoringFilter implements ScoringFilter {
   private Configuration conf;
   private DomainSuffixes tldEntries;
 
+  private final static Set<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
   public TLDScoringFilter() {
     tldEntries = DomainSuffixes.getInstance();
-  }
-
-  public float indexerScore(Text url, NutchDocument doc, CrawlDatum dbDatum,
-      CrawlDatum fetchDatum, Parse parse, Inlinks inlinks, float initScore)
-      throws ScoringFilterException {
-
-    NutchField tlds = doc.getField("tld");
-    float boost = 1.0f;
-
-    if (tlds != null) {
-      for (Object tld : tlds.getValues()) {
-        DomainSuffix entry = tldEntries.get(tld.toString());
-        if (entry != null)
-          boost *= entry.getBoost();
-      }
-    }
-    return initScore * boost;
-  }
-
-  public CrawlDatum distributeScoreToOutlink(Text fromUrl, Text toUrl,
-      ParseData parseData, CrawlDatum target, CrawlDatum adjust, int allCount,
-      int validCount) throws ScoringFilterException {
-    return adjust;
-  }
-
-  public float generatorSortValue(Text url, CrawlDatum datum, float initSort)
-      throws ScoringFilterException {
-    return initSort;
-  }
-
-  public void initialScore(Text url, CrawlDatum datum)
-      throws ScoringFilterException {
-  }
-
-  public void injectedScore(Text url, CrawlDatum datum)
-      throws ScoringFilterException {
-  }
-
-  public void passScoreAfterParsing(Text url, Content content, Parse parse)
-      throws ScoringFilterException {
-  }
-
-  public void passScoreBeforeParsing(Text url, CrawlDatum datum, Content content)
-      throws ScoringFilterException {
-  }
-
-  public void updateDbScore(Text url, CrawlDatum old, CrawlDatum datum,
-      List<CrawlDatum> inlinked) throws ScoringFilterException {
   }
 
   public Configuration getConf() {
@@ -104,10 +55,53 @@ public class TLDScoringFilter implements ScoringFilter {
     this.conf = conf;
   }
 
-  public CrawlDatum distributeScoreToOutlinks(Text fromUrl,
-      ParseData parseData, Collection<Entry<Text, CrawlDatum>> targets,
-      CrawlDatum adjust, int allCount) throws ScoringFilterException {
-    return adjust;
+  @Override
+  public Collection<WebPage.Field> getFields() {
+    return FIELDS;
+  }
+
+  @Override
+  public void injectedScore(String url, WebPage page)
+      throws ScoringFilterException {
+  }
+
+  @Override
+  public void initialScore(String url, WebPage page)
+      throws ScoringFilterException {
+
+  }
+
+  @Override
+  public float generatorSortValue(String url, WebPage page, float initSort)
+      throws ScoringFilterException {
+    return initSort;
+  }
+
+  @Override
+  public void distributeScoreToOutlinks(String fromUrl, WebPage page,
+      Collection<ScoreDatum> scoreData, int allCount)
+      throws ScoringFilterException {
+  }
+
+  @Override
+  public void updateScore(String url, WebPage page,
+      List<ScoreDatum> inlinkedScoreData) throws ScoringFilterException {
+  }
+
+  @Override
+  public float indexerScore(String url, NutchDocument doc, WebPage page,
+      float initScore) throws ScoringFilterException {
+    List<String> tlds = doc.getFieldValues("tld");
+    float boost = 1.0f;
+
+    if (tlds != null) {
+      for (String tld : tlds) {
+        DomainSuffix entry = tldEntries.get(tld);
+        if (entry != null)
+          boost *= entry.getBoost();
+      }
+    }
+    return initScore * boost;
   }
 
 }

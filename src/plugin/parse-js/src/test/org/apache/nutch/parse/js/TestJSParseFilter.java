@@ -16,39 +16,40 @@
  */
 package org.apache.nutch.parse.js;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Set;
-import java.util.TreeSet;
-
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
 import org.apache.nutch.parse.Outlink;
 import org.apache.nutch.parse.Parse;
 import org.apache.nutch.parse.ParseException;
 import org.apache.nutch.parse.ParseUtil;
-import org.apache.nutch.protocol.Content;
-import org.apache.nutch.protocol.Protocol;
 import org.apache.nutch.protocol.ProtocolException;
-import org.apache.nutch.protocol.ProtocolFactory;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.MimeUtil;
 import org.apache.nutch.util.NutchConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 /**
  * JUnit test case for {@link JSParseFilter} which tests
  * <ol>
  * <li>That 2 outlinks are extracted from JavaScript snippets embedded in
  * HTML</li>
- * <li>That X outlinks are extracted from a pure JavaScript file (this is
- * temporarily disabled)</li>
+ * <li>That 2 outlinks are extracted from a pure JavaScript file.</li>
  * </ol>
  */
 public class TestJSParseFilter {
@@ -61,31 +62,41 @@ public class TestJSParseFilter {
   // This system property is defined in ./src/plugin/build-plugin.xml
   private String sampleDir = System.getProperty("test.data", ".");
 
-  // Make sure sample files are copied to "test.data" as specified in
-  // ./src/plugin/parse-js/build.xml during plugin compilation.
-
   private Configuration conf;
 
   @Before
   public void setUp() {
     conf = NutchConfiguration.create();
-    conf.set("file.content.limit", "-1");
-    conf.set("plugin.includes", "protocol-file|parse-(html|js)");
+    conf.set("plugin.includes", "parse-(html|js)");
   }
 
   public Outlink[] getOutlinks(String sampleFile)
       throws ProtocolException, ParseException, IOException {
-    String urlString;
+    String urlString, fileName;
     Parse parse;
 
+    fileName = sampleDir + fileSeparator + sampleFile;
+    urlString = "file:" + fileName;
+
     urlString = "file:" + sampleDir + fileSeparator + sampleFile;
+    File file = new File(fileName);
+    byte[] bytes = new byte[(int) file.length()];
+    DataInputStream dip = new DataInputStream(new FileInputStream(file));
+    dip.readFully(bytes);
+    dip.close();
+
     LOG.info("Parsing {}", urlString);
-    Protocol protocol = new ProtocolFactory(conf).getProtocol(urlString);
-    Content content = protocol
-        .getProtocolOutput(new Text(urlString), new CrawlDatum()).getContent();
-    parse = new ParseUtil(conf).parse(content).get(content.getUrl());
-    LOG.info(parse.getData().toString());
-    return parse.getData().getOutlinks();
+    WebPage page = WebPage.newBuilder().build();
+    page.setBaseUrl(new Utf8(urlString));
+    page.setContent(ByteBuffer.wrap(bytes));
+    MimeUtil mutil = new MimeUtil(conf);
+    String mime = mutil.getMimeType(file);
+    page.setContentType(new Utf8(mime));
+
+    parse = new ParseUtil(conf).parse(urlString, page);
+    LOG.info("Parsed {} with {} outlinks: {}", urlString,
+        parse.getOutlinks().length, Arrays.toString(parse.getOutlinks()));
+    return parse.getOutlinks();
   }
 
   @Test

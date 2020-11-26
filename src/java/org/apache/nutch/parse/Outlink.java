@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
-import java.util.Map.Entry;
 
-import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.*;
 
 /* An outgoing link from a page. */
 public class Outlink implements Writable {
 
   private String toUrl;
   private String anchor;
-  private MapWritable md;
 
   public Outlink() {
   }
@@ -41,41 +36,22 @@ public class Outlink implements Writable {
     if (anchor == null)
       anchor = "";
     this.anchor = anchor;
-    md = null;
   }
 
   public void readFields(DataInput in) throws IOException {
     toUrl = Text.readString(in);
     anchor = Text.readString(in);
-    boolean hasMD = in.readBoolean();
-    if (hasMD) {
-      md = new org.apache.hadoop.io.MapWritable();
-      md.readFields(in);
-    } else
-      md = null;
   }
 
   /** Skips over one Outlink in the input. */
   public static void skip(DataInput in) throws IOException {
     Text.skip(in); // skip toUrl
     Text.skip(in); // skip anchor
-    boolean hasMD = in.readBoolean();
-    if (hasMD) {
-      MapWritable metadata = new org.apache.hadoop.io.MapWritable();
-      metadata.readFields(in);
-      ;
-    }
   }
 
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, toUrl);
     Text.writeString(out, anchor);
-    if (md != null && md.size() > 0) {
-      out.writeBoolean(true);
-      md.write(out);
-    } else {
-      out.writeBoolean(false);
-    }
   }
 
   public static Outlink read(DataInput in) throws IOException {
@@ -88,20 +64,8 @@ public class Outlink implements Writable {
     return toUrl;
   }
 
-  public void setUrl(String toUrl) {
-    this.toUrl = toUrl;
-  }
-
   public String getAnchor() {
     return anchor;
-  }
-
-  public MapWritable getMetadata() {
-    return md;
-  }
-
-  public void setMetadata(MapWritable md) {
-    this.md = md;
   }
 
   public boolean equals(Object o) {
@@ -112,23 +76,8 @@ public class Outlink implements Writable {
   }
 
   public String toString() {
-    StringBuffer repr = new StringBuffer("toUrl: ");
-    repr.append(toUrl);
-    repr.append(" anchor: ");
-    repr.append(anchor);
-    if (md != null && !md.isEmpty()) {
-      for (Entry<Writable, Writable> e : md.entrySet()) {
-        repr.append(" ");
-        repr.append(e.getKey());
-        repr.append(": ");
-        repr.append(e.getValue());
-      }
-    }
-    return repr.toString();
+    return "toUrl: " + toUrl + " anchor: " + anchor; // removed "\n". toString,
+                                                     // not printLine... WD.
   }
 
-  @Override
-  public int hashCode() {
-    return toUrl.hashCode() ^ anchor.hashCode();
-  }
 }

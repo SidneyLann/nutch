@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -35,7 +35,7 @@ public class CpmIteratorAdapter<T> extends ModelIteratorAdapter<T> {
 
   @Override
   protected IModel<T> model(T object) {
-    return new CompoundPropertyModel<>(object);
+    return new CompoundPropertyModel<T>(object);
   }
 
 }

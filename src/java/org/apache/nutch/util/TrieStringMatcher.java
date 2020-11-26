@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
 import java.util.Arrays;
@@ -23,8 +24,6 @@ import java.util.ListIterator;
 /**
  * TrieStringMatcher is a base class for simple tree-based string matching.
  * 
- * This class is thread-safe during string matching but not when adding strings
- * to the trie.
  */
 public abstract class TrieStringMatcher {
   protected TrieNode root;
@@ -50,7 +49,7 @@ public abstract class TrieStringMatcher {
     TrieNode(char nodeChar, boolean isTerminal) {
       this.nodeChar = nodeChar;
       this.terminal = isTerminal;
-      this.childrenList = new LinkedList<>();
+      this.childrenList = new LinkedList<TrieNode>();
     }
 
     /**
@@ -69,7 +68,7 @@ public abstract class TrieStringMatcher {
      */
     TrieNode getChildAddIfNotPresent(char nextChar, boolean isTerminal) {
       if (childrenList == null) {
-        childrenList = new LinkedList<>();
+        childrenList = new LinkedList<TrieNode>();
         childrenList.addAll(Arrays.asList(children));
         children = null;
       }
@@ -105,7 +104,9 @@ public abstract class TrieStringMatcher {
      */
     TrieNode getChild(char nextChar) {
       if (children == null) {
-        compile();
+        children = childrenList.toArray(new TrieNode[childrenList.size()]);
+        childrenList = null;
+        Arrays.sort(children);
       }
 
       int min = 0;
@@ -136,18 +137,6 @@ public abstract class TrieStringMatcher {
         return 0;
       // if (this.nodeChar > other.nodeChar)
       return 1;
-    }
-
-    /**
-     * Prepare node for matching. Note: this method is synchronized because it
-     * may be called concurrently when the trie is used for matching.
-     */
-    synchronized void compile() {
-      if (childrenList != null) {
-        children = childrenList.toArray(new TrieNode[childrenList.size()]);
-        childrenList = null;
-        Arrays.sort(children);
-      }
     }
   }
 

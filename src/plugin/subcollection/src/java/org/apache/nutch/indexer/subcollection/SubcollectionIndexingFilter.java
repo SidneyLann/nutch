@@ -16,27 +16,24 @@
  */
 package org.apache.nutch.indexer.subcollection;
 
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.io.Text;
-
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.util.NutchConfiguration;
-
-import org.apache.nutch.indexer.IndexingFilter;
-import org.apache.nutch.indexer.IndexingException;
-import org.apache.nutch.indexer.NutchDocument;
-
 import org.apache.nutch.collection.CollectionManager;
-import org.apache.nutch.collection.Subcollection;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
+import org.apache.nutch.indexer.IndexingException;
+import org.apache.nutch.indexer.IndexingFilter;
+import org.apache.nutch.indexer.NutchDocument;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.NutchConfiguration;
 
 public class SubcollectionIndexingFilter extends Configured implements
     IndexingFilter {
-
-  private Configuration conf;
-  private boolean caseInsensitive = false;
 
   public SubcollectionIndexingFilter() {
     super(NutchConfiguration.create());
@@ -47,32 +44,15 @@ public class SubcollectionIndexingFilter extends Configured implements
   }
 
   /**
-   * @param conf
-   */
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-    fieldName = conf.get("subcollection.default.fieldname", "subcollection");
-    metadataSource = conf.get("subcollection.metadata.source", "subcollection");
-    caseInsensitive = conf.getBoolean("subcollection.case.insensitive", false);
-  }
-  
-
-  /**
-   * @return Configuration
-   */
-  public Configuration getConf() {
-    return this.conf;
-  }
-
-  /**
    * Doc field name
    */
-  public static String fieldName = "subcollection";
-  
+  public static final String FIELD_NAME = "subcollection";
+
   /**
-   * Metadata source field name
+   * Logger
    */
-  public static String metadataSource = "subcollection";
+  private static final Logger LOG = LoggerFactory
+      .getLogger(MethodHandles.lookup().lookupClass());
 
   /**
    * "Mark" document to be a part of subcollection
@@ -81,34 +61,21 @@ public class SubcollectionIndexingFilter extends Configured implements
    * @param url
    */
   private void addSubCollectionField(NutchDocument doc, String url) {
-    for (Subcollection coll : CollectionManager.getCollectionManager(getConf())
+    for (String collname : CollectionManager.getCollectionManager(getConf())
         .getSubCollections(url)) {
-      if (coll.getKey() == null) {
-        doc.add(fieldName, coll.getName());
-      } else {
-        doc.add(coll.getKey(), coll.getName());
-      }
+      doc.add(FIELD_NAME, collname);
     }
   }
 
-  public NutchDocument filter(NutchDocument doc, Parse parse, Text url,
-      CrawlDatum datum, Inlinks inlinks) throws IndexingException {
-    // Check for subcollection overrride in HTML metadata
-    String subcollection = parse.getData().getMeta(metadataSource);
-    if (subcollection != null) {
-      subcollection = subcollection.trim();
-      
-      if (subcollection.length() > 0) {
-        doc.add(fieldName, subcollection);
-        return doc;
-      }
-    }
-    
-    String sUrl = url.toString();
-    if (caseInsensitive) {
-      sUrl = sUrl.toLowerCase();
-    }
-    addSubCollectionField(doc, sUrl);
+  @Override
+  public Collection<Field> getFields() {
+    return new ArrayList<Field>();
+  }
+
+  @Override
+  public NutchDocument filter(NutchDocument doc, String url, WebPage page)
+      throws IndexingException {
+    addSubCollectionField(doc, url);
     return doc;
   }
 }

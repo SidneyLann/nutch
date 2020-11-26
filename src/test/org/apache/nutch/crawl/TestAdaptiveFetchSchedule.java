@@ -19,7 +19,7 @@ package org.apache.nutch.crawl;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.NutchConfiguration;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,50 +57,49 @@ public class TestAdaptiveFetchSchedule extends TestCase {
     FetchSchedule fs = new AdaptiveFetchSchedule();
     fs.setConf(conf);
 
-    CrawlDatum p = prepareCrawlDatum();
-    Text url = new Text("http://www.example.com");
+    WebPage p = prepareWebpage();
 
     changed = FetchSchedule.STATUS_UNKNOWN;
-    fs.setFetchSchedule(url, p, p.getFetchTime(), p.getModifiedTime(), curTime,
-        lastModified, changed);
+    fs.setFetchSchedule("http://www.example.com", p, p.getFetchTime(),
+        p.getModifiedTime(), curTime, lastModified, changed);
     validateFetchInterval(changed, p.getFetchInterval());
 
     changed = FetchSchedule.STATUS_MODIFIED;
-    fs.setFetchSchedule(url, p, p.getFetchTime(), p.getModifiedTime(), curTime,
-        lastModified, changed);
+    fs.setFetchSchedule("http://www.example.com", p, p.getFetchTime(),
+        p.getModifiedTime(), curTime, lastModified, changed);
     validateFetchInterval(changed, p.getFetchInterval());
     p.setFetchInterval(interval);
 
     changed = FetchSchedule.STATUS_NOTMODIFIED;
-    fs.setFetchSchedule(url, p, p.getFetchTime(), p.getModifiedTime(), curTime,
-        lastModified, changed);
+    fs.setFetchSchedule("http://www.example.com", p, p.getFetchTime(),
+        p.getModifiedTime(), curTime, lastModified, changed);
     validateFetchInterval(changed, p.getFetchInterval());
 
   }
 
   /**
-   * Prepare a CrawlDatum (STATUS_DB_UNFETCHED) to Test AdaptiveFetchSchedule.
+   * Prepare a Webpage to Test Adaptive Fetch Schedule.
    * 
-   * @return properly initialized CrawlDatum
+   * @return wp :Webpage
    */
-  public CrawlDatum prepareCrawlDatum() {
-    CrawlDatum p = new CrawlDatum();
-    p.setStatus(CrawlDatum.STATUS_DB_UNFETCHED);
-    p.setFetchInterval(interval);
-    p.setScore(1.0f);
-    p.setFetchTime(0);
-    return p;
+  public WebPage prepareWebpage() {
+    WebPage wp = WebPage.newBuilder().build();
+    wp.setStatus(1);
+    wp.setFetchInterval(interval);
+    wp.setScore(1.0f);
+    wp.setFetchTime(0L);
+    return wp;
   }
 
   /**
    * 
-   * The Method validates interval values according to changed parameter.
+   * The Method validates Interval values according to changed parameter.
    * 
    * @param changed
-   *          status value to check calculated interval value.
+   *          status value to check calculated IntervalValue.
    * @param getInterval
-   *          to test IntervalValue from CrawlDatum which is calculated via
-   *          AdaptiveFetchSchedule algorithm.
+   *          to test IntervalValue get from webpage. Which is calculated via
+   *          AdaptiveFetch Algorithm.
    */
   private void validateFetchInterval(int changed, int getInterval) {
 

@@ -21,8 +21,9 @@ import java.net.MalformedURLException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.net.URLNormalizers;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
+
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class TestPassURLNormalizer {
 
@@ -37,9 +38,9 @@ public class TestPassURLNormalizer {
     try {
       result = normalizer.normalize(url, URLNormalizers.SCOPE_DEFAULT);
     } catch (MalformedURLException mue) {
-      Assert.fail(mue.toString());
+      fail(mue.toString());
     }
 
-    Assert.assertEquals(url, result);
+    assertEquals(url, result);
   }
 }

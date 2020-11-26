@@ -1,929 +1,186 @@
-# Nutch Change Log
+Nutch Change Log
 
-Nutch 1.18 Development
-
-Breaking Changes
-
-    -  As part of NUTCH-2805, the plugin urlfilter-domainblacklist has been renamed to urlfilter-domaindenylist. And the fields required for the plugin urlfilter.domainblacklist.rules and urlfilter.domainblacklist.file has been replaced with urlfilter.domaindenylist.rules and urlfilter.domaindenylist.file respectively. See NUTCH-2802 for more details.
-
-Nutch 1.17 Release 18/06/2020 (dd/mm/yyyy)
-Release Report: https://s.apache.org/ovhry
-
-Bug
-
-    [NUTCH-1559] - parse-metatags duplicates extracted metatags
-    [NUTCH-2379] - crawl script dedup's crawldb update is slow
-    [NUTCH-2419] - Some URL filters and normalizers do not respect command-line override for rule file
-    [NUTCH-2507] - NutchTutorial wiki pages as a lot of outdated command line calls when it starts with the solr interaction
-    [NUTCH-2511] - SitemapProcessor limited by http.content.limit
-    [NUTCH-2525] - Metadata indexer cannot handle uppercase parse metadata
-    [NUTCH-2567] - parse-metatags writes all meta tags twice
-    [NUTCH-2720] - ROBOTS metatag ignored when capitalized
-    [NUTCH-2745] - Solr schema.xml not shipped in binary release
-    [NUTCH-2748] - Fetch status gone (redirect exceeded) not to overwrite existing items in CrawlDb
-    [NUTCH-2751] - nutch clean does not work with secured solr cloud
-    [NUTCH-2753] - Add -listen option to command-line help of CrawlDbReader and LinkDbReader
-    [NUTCH-2754] - fetcher.max.crawl.delay ignored if exceeding 5 min. / 300 sec.
-    [NUTCH-2760] - protocol-okhttp: properly record HTTP version in request message header
-    [NUTCH-2761] - ivy jar fails to download
-    [NUTCH-2763] - protocol-okhttp (store.http.headers): add whitespace in status line after status code also when message is empty
-    [NUTCH-2770] - Subcollection logic allows empty string as a whitelist value, thus matching every incoming document.
-    [NUTCH-2778] - indexer-elastic to properly log errors
-    [NUTCH-2787] - CrawlDb JSON dump does not export metadata primitive data types correctly
-    [NUTCH-2789] - Documentation: update links to point to cwiki
-    [NUTCH-2790] - CSVIndexWriter does not escape leading quotes properly
-    [NUTCH-2791] - domainstats, protocolstats and crawlcomplete do not handle GCS URLs
-
-New Feature
-
-    [NUTCH-1863] - Add JSON format dump output to readdb command
-
-Improvement
-
-    [NUTCH-1194] - Generator: CrawlDB lock should be released earlier
-    [NUTCH-2002] - ParserChecker and IndexingFiltersChecker to check robots.txt
-    [NUTCH-2184] - Enable IndexingJob to function with no crawldb
-    [NUTCH-2495] - Use -deleteGone instead of clean job in crawler script while indexing
-    [NUTCH-2496] - Speed up link inversion step in crawling script
-    [NUTCH-2501] - allow to set Java heap size when using crawl script in distributed mode
-    [NUTCH-2649] - Optionally skip TLS/SSL certificate validation for protocol-selenium and protocol-htmlunit
-    [NUTCH-2733] - protocol-okhttp: add support for Brotli compression (Content-Encoding)
-    [NUTCH-2739] - indexer-elastic: Upgrade ES and migrate to REST client
-    [NUTCH-2743] - Add list of Nutch properties (nutch-default.xml) to documentation
-    [NUTCH-2746] - Basic URL normalizer to normalize Unicode domain names
-    [NUTCH-2747] - Replace remaining o.a.commons.logging by org.slf4j
-    [NUTCH-2750] - Improve CrawlDbReader & LinkDbReader reader handling
-    [NUTCH-2752] - indexer-solr: Upgrade to latest Solr version
-    [NUTCH-2755] - Remove obsolete plugin indexer-elastic-rest
-    [NUTCH-2757] - indexer-elastic: add authentication options
-    [NUTCH-2758] - Add plugin READMEs to binary release packages
-    [NUTCH-2759] - bin/crawl: Rename option --num-slaves
-    [NUTCH-2762] - Replace http:// URLs by https:// (build files and documentation)
-    [NUTCH-2767] - Fetcher to stop filling queues skipped due to repeated exceptions
-    [NUTCH-2768] - FetcherThread: unnecessary usage of class casts
-    [NUTCH-2772] - Debugging parse filter to show serialized DOM tree
-    [NUTCH-2773] - SegmentReader (-dump or -get): show HTML content as UTF-8
-    [NUTCH-2774] - Annotate methods implementing the Hadoop API by @Override
-    [NUTCH-2775] - Fetcher to guarantee minimum delay even if robots.txt defines shorter Crawl-delay
-    [NUTCH-2776] - Fetcher to temporarily deduplicate followed redirects
-    [NUTCH-2777] - Upgrade to Hadoop 3.1
-    [NUTCH-2779] - Upgrade to Tika 1.24.1
-    [NUTCH-2780] - Upgrade index-solr to use Solr 8.5.1
-    [NUTCH-2781] - Increase default Java heap size
-    [NUTCH-2783] - Use (more) parametrized logging
-    [NUTCH-2784] - Add tool to list Nutch and Hadoop properties
-    [NUTCH-2785] - FreeGenerator: command-line option to define number of generated fetch lists
-    [NUTCH-2788] - ParseData: improve presentation of Metadata in method toString()
-    [NUTCH-2794] - Add additional ciphers to HTTP base's default cipher suite
-
-Test
-
-    [NUTCH-1945] - Test for XLSX parser
-
-Task
-
-    [NUTCH-2434] - Add methods to reset parameters HTMLMetaTags
+Nutch 2.4 Release 23092019 (ddmmyyyy)
+Release Report - https://s.apache.org/bFfL
 
 Sub-task
 
-    [NUTCH-2735] - Update the indexer-solr documentation about the schema.xml usage
-
-
-Nutch 1.16 Release 02/10/2019 (dd/mm/yyyy)
-Release Report: https://s.apache.org/l2j94
-
-Comments
-
-    -  schema.xml has been moved to indexer-solr plugin directory. This file is provided as a
-       reference/guide for Solr users (NUTCH-2654)
-
-Breaking Changes
-
-    -  The value of crawl.gen.delay is now read in milliseconds as stated in the description
-       in nutch-default.xml. Previously, the value has been read in days, see NUTCH-1842 for
-       further information.
-
-    -  HostDB entries have been moved from Integer to Long in order to accomodate very large
-       hosts. Remove your existing HostDB and recreate it with bin/nutch updatehostdb, see
-       NUTCH-2694 for additional information.
-
-    -  The signature class TextProfileSignature has been improved to be stable over
-       consecutive runs by sorting tokens by frequency first and secondarily in lexicographic
-       order.  If an existing CrawlDb contains signatures generated by TextProfileSignature
-       these are likely to change when upgrading to Nutch 1.16.  The previous behavior relying
-       on a semi-stable pseudo-random hash sorting could be restored setting the property
-       `db.signature.text_profile.sec_sort_lex` to `false`. See also NUTCH-2381.
+    [NUTCH-2284] - Basic Authentication Support for REST API
+    [NUTCH-2285] - Digest Authentication Support for REST API
+    [NUTCH-2289] - SSL Support for REST API
+    [NUTCH-2294] - Authorization Support for REST API
+    [NUTCH-2301] - Create Tests for Security Layer of NutchServer
 
 Bug
 
-    [NUTCH-1063] - OutlinkExtractor test generates an exception but does not fail
-    [NUTCH-1842] - crawl.gen.delay has a wrong default value in nutch-default.xml or is being parsed incorrectly
-    [NUTCH-2279] - LinkRank fails when using Hadoop MR output compression
-    [NUTCH-2381] - In some situations the class TextProfileSignature gives different signatures for the same text "profile" page.
-    [NUTCH-2387] - Nutch should not index document with "noindex" meta
-    [NUTCH-2457] - Embedded documents likely not correctly parsed by Tika
-    [NUTCH-2475] - If and else-if branches has the same condition
-    [NUTCH-2482] - index-geoip not to add null values to document fields
-    [NUTCH-2585] - NPE in TrieStringMatcher
-    [NUTCH-2598] - URLNormalizerChecker fails on invalid URLs in input
-    [NUTCH-2606] - MIME detection is wrong for plain-text documents send as Content-Type "application/msword"
-    [NUTCH-2635] - Generator writes unneeded temporary output
-    [NUTCH-2639] - bin/nutch fails to set native library path on Cygwin causing jobs to fail with UnsatisfiedLinkError
-    [NUTCH-2641] - ClassCastException in webui
-    [NUTCH-2642] - MoreIndexingFilter parses ISO 8601 UTC dates in local time zone
-    [NUTCH-2643] - ant target "resolve-default" to depend on "init"
-    [NUTCH-2644] - CrawlDbReader -dump ignores filter options
-    [NUTCH-2645] - Webgraph tools ignore command-line options
-    [NUTCH-2650] - -addBinaryContent -base64 flags are causing "String length must be a multiple of four" error in IndexingJob
-    [NUTCH-2652] - Fetcher launches more fetch tasks than fetch lists
-    [NUTCH-2655] - Update Solr schema.xml for Solr 7.x
-    [NUTCH-2656] - Update description to configure Solr 7.x in tutorial
-    [NUTCH-2673] - EOFException protocol-http
-    [NUTCH-2674] - HostDb: dump shows wrong column headers
-    [NUTCH-2680] - Documentation: https supported by multiple protocol plugins not only httpclient
-    [NUTCH-2687] - Regex for reading title from Content-Disposition is wrong
-    [NUTCH-2694] - HostDB to aggregate by long instead of integer
-    [NUTCH-2696] - Nutch SegmentReader does not dump non-ASCII characters with Hadoop 3.x
-    [NUTCH-2699] - Protocol-okhttp: needless loops to increment requested bytes counter when more content is already buffered
-    [NUTCH-2703] - parse-tika: Boilerpipe should not run for non-(X)HTML pages
-    [NUTCH-2706] - -addBinaryContent flag can cause "String length must be a multiple of four" error in IndexingJob
-    [NUTCH-2715] - WARCExporter fails on large records
-    [NUTCH-2716] - protocol-http: Response headers are not stored for a compressed response
-    [NUTCH-2717] - Generator cannot open hostDB
-    [NUTCH-2722] - Fetch dependencies via https
-    [NUTCH-2723] - Indexer Solr not to decode URLs before deletion
-    [NUTCH-2724] - Metadata indexer not to emit empty values
-    [NUTCH-2729] - protocol-okhttp: fix marking of truncated content
-    [NUTCH-2731] - Solr Cleanup Step Fails when Authentication is Required
-    [NUTCH-2738] - Generator: document property generate.restrict.status
-    [NUTCH-2740] - Generator: generate.max.count overflow not logged
-
-New Feature
-
-    [NUTCH-2676] - Update to the latest selenium and add code to use chrome and firefox headless mode with the remote web driver
-
-Improvement
-
-    [NUTCH-1014] - Migrate from Apache ORO to java.util.regex
-    [NUTCH-1021] - Migrate OutlinkExtractor from Apache ORO to java.util.regex
-    [NUTCH-1982] - Make Git ignore IDE project files and add note about IDE setup
-    [NUTCH-2460] - use the headless option of firefox and chrome in protocol-selenium
-    [NUTCH-2602] - Configuration values in the description of index writers
-    [NUTCH-2612] - Support for sitemap processing by hostname
-    [NUTCH-2623] - Fetcher to guarantee delay for same host/domain/ip independent of http/https protocol
-    [NUTCH-2625] - ProtocolFactory.getProtocol(url) may create multiple plugin instances
-    [NUTCH-2626] - bin/crawl: remove option -noParsing from fetch command
-    [NUTCH-2627] - Fetcher to optionally filter URLs
-    [NUTCH-2628] - Fetcher: optionally generate signature of unparsed content
-    [NUTCH-2629] - Documentation for CSV Index Writer
-    [NUTCH-2630] - Fetcher to log skipped records by robots.txt
-    [NUTCH-2631] - KafkaIndexWriter
-    [NUTCH-2632] - protocol-okhttp doesn't accept proxy authentication
-    [NUTCH-2633] - Fix deprecation warnings when building Nutch master branch under JDK 10.0.2+13
-    [NUTCH-2647] - Skip TLS certificate checks in protocol-http plugin
-    [NUTCH-2648] - Make configurable whether TLS/SSL certificates are checked by protocol plugins
-    [NUTCH-2651] - Upgrade to Tika 1.19.1 (from 1.18)
-    [NUTCH-2653] - ProtocolFactory.getProtocol(url) creates separate plugin instances for http/https
-    [NUTCH-2654] - Remove obsolete index-writer configuration in conf/
-    [NUTCH-2657] - Protocol-http to store HTTP response header with "\r\n"
-    [NUTCH-2658] - Add README file to all plugins in src/plugin
-    [NUTCH-2659] - Add missing Apache license headers
-    [NUTCH-2660] - Unit tests of plugins parse-js, headings, index-jexl-filter to be executed during build
-    [NUTCH-2661] - Move TestOutlinks to the proper path
-    [NUTCH-2663] - Improve index-jexl-filter syntax for scripts
-    [NUTCH-2666] - Increase default value for http.content.limit / ftp.content.limit / file.content.limit
-    [NUTCH-2668] - Integrate OWASP dependency checks as ant target
-    [NUTCH-2678] - Allow for per-host configurable protocol plugin
-    [NUTCH-2682] - Upgrade to Tika 1.20
-    [NUTCH-2683] - DeduplicationJob: add option to prefer https:// over http://
-    [NUTCH-2686] - Separate field for mime types mapped by index-more plugin
-    [NUTCH-2688] - Unify the licence headers
-    [NUTCH-2689] - Speed up urlfilter-regex and urlfilter-automaton
-    [NUTCH-2690] - Configurable and fast URL filter
-    [NUTCH-2691] - Improve logging from scoring-depth plugin
-    [NUTCH-2692] - Subcollection to support case-insensitive white and black lists
-    [NUTCH-2693] - Misspelled configuration property names in documentation
-    [NUTCH-2695] - Fix some alerts raised by LGTM
-    [NUTCH-2700] - Indexchecker: improve command-line help
-    [NUTCH-2701] - Fetcher: log dates and times also in human-readable form
-    [NUTCH-2702] - Fetcher: suppress stack for frequent exceptions
-    [NUTCH-2704] - Upgrade crawler-commons dependency to 1.0
-    [NUTCH-2708] - urlfilter-automaton: update library dependency (dk.brics.automaton)
-    [NUTCH-2709] - Remove unused properties and code related to HTTP protocol
-    [NUTCH-2718] - Names of index writers and exchanges configuration files to be configurable
-    [NUTCH-2719] - NPE if exchanges.xml uses index writer not available
-    [NUTCH-2725] - Plugin lib-http to support per-host configurable cookies
-    [NUTCH-2726] - Upgrade to Tika 1.22
-    [NUTCH-2727] - Upgrade Hadoop dependencies to 2.9.2
-    [NUTCH-2728] - protocol-okhttp: upgrade okhttp dependency to 3.14.2
-    [NUTCH-2732] - Ignored and tracked configuration files by git
-    [NUTCH-2736] - Upgrade Dockerfile to be based on recent Ubuntu LTS version
-    [NUTCH-2737] - Generator: count and log reason of rejections during selection
-
-Task
-
-    [NUTCH-2192] - Get rid of oro
-    [NUTCH-2613] - Documentation for exchange component
-    [NUTCH-2698] - Remove sonar build task from build.xml
-
-Sub-task
-
-    [NUTCH-1121] - JUnit test for parse-js
-    [NUTCH-2621] - Generate report of third-party licenses
-    [NUTCH-2684] - Add README.md file to all indexer writers plugins
-    [NUTCH-2685] - Add README.md file to all exchange plugins
-
-
-Nutch 1.15 Release (25/07/2018)
-Release Report: https://s.apache.org/nczS
-
-Breaking Changes
-
-    - indexer plugins are now configured in a single XML file (conf/index-writers.xml),
-      see https://cwiki.apache.org/confluence/display/NUTCH/IndexWriters - setting or overwriting configuration
-      parameters via Nutch properties is not possible anymore.
-
-Bug
-
-    [NUTCH-1993] - Nutch does not use backup parsers
-    [NUTCH-2071] - A parser failure on a single document may fail crawling job if parser.timeout=-1
-    [NUTCH-2145] - parse/index checker fail to fetch valid percent-encoded URLs
-    [NUTCH-2161] - Interrupted failed and/or killed tasks fail to clean up temp directories in HDFS
-    [NUTCH-2273] - Selenium and InteractiveSelenium Do Not Support HTTPS
-    [NUTCH-2310] - Protocol-Selenium does not support HTTPS protocol
-    [NUTCH-2321] - Indexing filter checker leaks threads
-    [NUTCH-2324] - Issue in setting default linkdb path
-    [NUTCH-2447] - Work-around SSLProtocolException: handshake alert: unrecognized_name
-    [NUTCH-2454] - REST API fix for usage of hostdb in generator
-    [NUTCH-2461] - Generate passes the data to when maxCount == 0
-    [NUTCH-2466] - Sitemap processor to follow redirects
-    [NUTCH-2467] - Sitemap type field can be null
-    [NUTCH-2485] - ParserFactory swallows exception
-    [NUTCH-2486] - Compiler Warning: Unchecked / unsafe operations in MimeTypeIndexingFilter
-    [NUTCH-2489] - Dependency collision with lucene-analyzers-common in scoring-similarity plugin
-    [NUTCH-2490] - Sitemap processing: Sitemap index files not working
-    [NUTCH-2494] - Fetcher: java.lang.IllegalArgumentException: Wrong FS: s3
-    [NUTCH-2499] - Elastic REST Indexer: Duplicate values
-    [NUTCH-2505] - nutch does not delete the .locked file, when the generator partition got an exception
-    [NUTCH-2508] - Misleading documentation about http.proxy.exception.list
-    [NUTCH-2509] - Inconsistent behavior in SitemapProcessor
-    [NUTCH-2513] - ant eclipse target fails with "protocol switch unsafe"
-    [NUTCH-2517] - mergesegs corrupts segment data
-    [NUTCH-2518] - Must check return value of job.waitForCompletion()
-    [NUTCH-2520] - Wrong Accept-Charset sent when http.accept.charset is not defined
-    [NUTCH-2521] - SitemapProcessor to use property sitemap.redir.max
-    [NUTCH-2523] - UpdateHostDB blocks usage of plugins unintentionally
-    [NUTCH-2524] - bin/crawl: fix check for HostDb in distributed mode
-    [NUTCH-2533] - Injector: NullPointerException if seed URL dir contains non-file entries
-    [NUTCH-2535] - CrawlDbReader -stats: ClassCastException
-    [NUTCH-2544] - Nutch 1.15 no longer compatible with AWS EMR and S3
-    [NUTCH-2547] - urlnormalizer-basic fails on special characters in path/query
-    [NUTCH-2549] - protocol-http does not behave the same as browsers
-    [NUTCH-2550] - Fetcher fails to follow redirects
-    [NUTCH-2551] - NullPointerException in generator
-    [NUTCH-2552] - CrawlDbReader -topN fails
-    [NUTCH-2553] - Fetcher not to modify URLs to be fetched
-    [NUTCH-2554] - parserchecker can't fetch some URLs
-    [NUTCH-2565] - MergeDB incorrectly handles unfetched CrawlDatums
-    [NUTCH-2568] - Caught exception is immediately rethrown
-    [NUTCH-2569] - ClassNotFoundException when running in (pseudo-)distributed mode
-    [NUTCH-2570] - Deduplication job fails to install deduplicated CrawlDb
-    [NUTCH-2571] - SegmentReader -list fails to read segment
-    [NUTCH-2572] - HostDb: updatehostdb does not set values
-    [NUTCH-2574] - Generator: hostCount >= maxCount comparison wrong
-    [NUTCH-2581] - Caching of redirected robots.txt may overwrite correct robots.txt rules
-    [NUTCH-2589] - HTML redirections are not followed when using parse-tika
-    [NUTCH-2590] - SegmentReader -get fails
-    [NUTCH-2592] - Fetcher to log reason of failed fetches
-    [NUTCH-2593] - Single mode doesn't work in RabbitMQ indexer
-    [NUTCH-2597] - NPE in updatehostdb
-    [NUTCH-2601] - Elasticsearch Rest and Amazon CloudSearch have the same implementation class in indexer-writers.xml
-    [NUTCH-2607] - ParserChecker should call ScoringFilters.passScoreAfterParsing() on all parses
-    [NUTCH-2609] - urlnormalizer-basic to normalize path of file: URLs
-    [NUTCH-2614] - NPE in CrawlDbReader -stats on empty CrawlDb
-    [NUTCH-2616] - Review routing of deletions by Exchange component
-    [NUTCH-2618] - protocol-okhttp not to use http.timeout for max duration to fetch document
-    [NUTCH-2620] - urlfilter-validator incorrectly assumes that top-level domains are not longer than 4 characters
-    [NUTCH-2624] - protocol-okhttp resource leak
-
-New Feature
-
-    [NUTCH-1129] - Any23 Nutch plugin
-    [NUTCH-1541] - Indexer plugin to write CSV
-    [NUTCH-2412] - Exchange component for indexing job
-    [NUTCH-2492] - Add more configuration parameters to crawl script
-
-Improvement
-
-    [NUTCH-1106] - Options to skip url's based on length
-    [NUTCH-1480] - SolrIndexer to write to multiple servers.
-    [NUTCH-2012] - Merge parsechecker and indexchecker
-    [NUTCH-2375] - Upgrade the code base from org.apache.hadoop.mapred to org.apache.hadoop.mapreduce
-    [NUTCH-2390] - No documentation on pluggable indexing
-    [NUTCH-2411] - Index-metadata to support indexing multiple values for a field
-    [NUTCH-2416] - Fetcher to log thread ID
-    [NUTCH-2432] - Protocol httpclient to disable cookies if http.enable.cookie.header is false
-    [NUTCH-2441] - ARG_SEGMENT usage
-    [NUTCH-2491] - Integrate sitemap processing and HostDB into crawl script
-    [NUTCH-2493] - Add configuration parameter for sitemap processing to crawler script
-    [NUTCH-2497] - Elastic REST Indexer: Allow multiple hosts
-    [NUTCH-2502] - Any23 Plugin: Add Content-Type filtering
-    [NUTCH-2503] - Add option to run tests for a single plugin
-    [NUTCH-2510] - Crawl script modification. HostDb : generate, optional usage and description
-    [NUTCH-2516] - Hadoop imports use wildcards
-    [NUTCH-2519] - Log mapreduce job counters in local mode
-    [NUTCH-2526] - NPE in scoring-opic when indexing document without CrawlDb datum
-    [NUTCH-2527] - URL filter: provide rules to exclude localhost and private address spaces
-    [NUTCH-2530] - Rename property db.max.anchor.length > linkdb.max.anchor.length
-    [NUTCH-2534] - CrawlDbReader -stats: make score quantiles configurable
-    [NUTCH-2539] - Not correct naming of db.url.filters and db.url.normalizers in nutch-default.xml
-    [NUTCH-2543] - readdb & readlinkdb to implement AbstractChecker
-    [NUTCH-2545] - Upgrade to Any23 2.2
-    [NUTCH-2566] - Fix exception log messages
-    [NUTCH-2576] - HTTP protocol plugin based on okhttp
-    [NUTCH-2577] - protocol-selenium can't handle https
-    [NUTCH-2578] - Avoid lock by MimeUtil in constructor of protocol.Content
-    [NUTCH-2579] - Fetcher to use parsed URL to call ProtocolFactory.getProtocol(url)
-    [NUTCH-2580] - Improvements for Rabbitmq support
-    [NUTCH-2583] - Upgrading Nutch's dependencies
-    [NUTCH-2584] - Upgrade parse-tika to use Tika 1.18
-    [NUTCH-2594] - Documentation for indexer plugins
-    [NUTCH-2595] - Upgrade crawler-commons dependency to 0.10
-    [NUTCH-2600] - Refactoring indexer-solr
-    [NUTCH-2611] - Add line-breaks when parsing HTML block-level elements
-    [NUTCH-2617] - Disable Exchange component by default
-    [NUTCH-2619] - protocol-okhttp: allow to keep partially fetched docs as truncated
-
-Task
-
-    [NUTCH-1219] - Upgrade all jobs to new MapReduce API
-    [NUTCH-1228] - Change mapred.task.timeout to mapreduce.task.timeout in fetcher
-
-Sub-task
-
-    [NUTCH-1223] - Migrate WebGraph to MapReduce API
-    [NUTCH-1224] - Migrate FreeGenerator to MapReduce API
-    [NUTCH-1226] - Migrate CrawlDbReader to MapReduce API
-    [NUTCH-2152] - CommonCrawl dump via Service endpoint
-    [NUTCH-2555] - URL normalization problem: path not starting with a '/'
-    [NUTCH-2556] - protocol-http makes invalid HTTP/1.0 requests
-    [NUTCH-2557] - protocol-http fails to follow redirections when an HTTP response body is invalid
-    [NUTCH-2558] - protocol-http cannot handle a missing HTTP status line
-    [NUTCH-2559] - protocol-http cannot handle colons after the HTTP status code
-    [NUTCH-2560] - protocol-http throws an error when an http header spans over multiple lines
-    [NUTCH-2561] - protocol-http can be made to read arbitrarily large HTTP responses
-    [NUTCH-2562] - protocol-http fails to read large chunked HTTP responses
-    [NUTCH-2563] - HTTP header spellchecking issues
-    [NUTCH-2575] - protocol-http does not respect the maximum content-size for chunked responses
-    [NUTCH-2622] - Unbundle LGPL-licensed jars from binary release
-
-
-Nutch 1.14 Release 18/12/2017 (dd/mm/yyyy)
-
-    - the bin/crawl script now expects the path to the seed to be preceded by -s  (NUTCH-2046)
-
-Bug
-
-    [NUTCH-2071] - A parser failure on a single document may fail crawling job
-    [NUTCH-2235] - Classpath discrepancy with protocol-selenium in deploy mode
+    [NUTCH-2089] - Move Nutch 2.x to compile on JDK 8
+    [NUTCH-2112] - Missing org.restlet.jee when building with gora-solr
+    [NUTCH-2222] - re-fetch deletes all metadata except _csh_ and _rs_
+    [NUTCH-2256] - Inconsistent log level practice
+    [NUTCH-2259] - Nutch 2.x HBase Docker requires a logs folder to run exception free
+    [NUTCH-2260] - JAVA_HOME and hbase-common dependency absent from hbase Docker image
+    [NUTCH-2266] - Fix dead link in build.xml for javadoc
     [NUTCH-2269] - Clean not working after crawl
-    [NUTCH-2295] - Nutch master docker container broken
-    [NUTCH-2297] - CrawlDbReader -stats wrong values for earliest fetch time and shortest interval
-    [NUTCH-2316] - Library conflict with Parser-Tika Plugin and Lib Folder
-    [NUTCH-2317] - Plugin jars don't get added to classpath while running in local
-    [NUTCH-2322] - URL not available for Jexl operations
-    [NUTCH-2354] - Upgrade Hadoop dependencies to 2.7.4
-    [NUTCH-2365] - HTTP Redirects to SubDomains don't get crawled if db.ignore.external.links.mode == byDomain
-    [NUTCH-2371] - Injector to support noFilter and noNormalize
-    [NUTCH-2372] - Javadocs build failing.
-    [NUTCH-2386] - BasicURLNormalizer does not encode curly braces
-    [NUTCH-2391] - Spurious Duplications for MD5
-    [NUTCH-2394] - Possible bugs in the source code
-    [NUTCH-2398] - Fetcher saving redirected robots.txt under redirect target URL
-    [NUTCH-2399] - indexer-elastic does not index multi-value fields (only the first value is indexed)
-    [NUTCH-2401] - headings plugin does not trim values
-    [NUTCH-2403] - Nutch Selenium: Wrong documentation about PhantomJS
-    [NUTCH-2413] - Parsing fetcher to respect property "parse.filter.urls"
-    [NUTCH-2420] - Bug in variable generate.max.count and fetcher.server.delay
-    [NUTCH-2436] - Remove empty comment, and redundant semicolon from CommandRunner
-    [NUTCH-2442] - Injector to stop if job fails to avoid loss of CrawlDb
-    [NUTCH-2444] - HostDB CSV dumper to emit field header by default
+    [NUTCH-2282] - Incorrect content-type returned in 4 API calls
+    [NUTCH-2283] - "Bad substitution" error when running cassandra docker scripts
+    [NUTCH-2305] - generate.min.score doesn't work in 2.x
+    [NUTCH-2314] - Use indexer-elastic2 Plugin for javadoc and eclipse Targets
+    [NUTCH-2337] - urlnormalizer-basic to strip empty port
+    [NUTCH-2346] - Check Types at Object Equality
+    [NUTCH-2348] - Close GZIPInputStream
+    [NUTCH-2349] - urlnormalizer-basic NPE for ill-formed URL "http:/"
+    [NUTCH-2350] - Add Missing activeConfId Field to NutchStatus Object
+    [NUTCH-2358] - HostInjectorJob doesn't work
+    [NUTCH-2364] - http.agent.rotate: IllegalArgumentException / last element of agent names ignored
+    [NUTCH-2388] - bin/crawl indexing only webpages containing batchID instead of all in 2.x
+    [NUTCH-2393] - 2.x patch for MD5 duplication issue addressed in NUTCH-2391
+    [NUTCH-2404] - Failed Jenkin Build #1588 error in unit test resolved
+    [NUTCH-2405] - jsoup-extractor structure correction, typo fixed
+    [NUTCH-2437] - gora mongodb mapping file error
     [NUTCH-2446] - URLFiltersCheck fix
     [NUTCH-2448] - Allow Sending an empty http.agent.version
     [NUTCH-2451] - protocol-ftp to resolve relative URL when following redirects
-    [NUTCH-2452] - Problem retrieving encoded URLs via FTP?
-    [NUTCH-2456] - Allow to index pages/URLs not contained in CrawlDb
-    [NUTCH-2458] - TikaParser doesn't work with tika-config.xml set
-    [NUTCH-2464] - Plugin headings: Headers That Contain HTML Elements Are Not Parsed
-    [NUTCH-2465] - Broken Eclipse project. Classpaths and interactiveselenium should be fixed.
-    [NUTCH-2472] - Sitemap processor does not honour db.ignore.external.links
-    [NUTCH-2473] - Elasticsearch REST Indexer broken due to wrong depenency
-    [NUTCH-2474] - CrawlDbReader -stats fails with ClassCastException
-    [NUTCH-2478] - // is not a valid base URL
-    [NUTCH-2483] - Remove/replace indirect dependencies to org.json
+    [NUTCH-2469] - Documents not commited to solr in Sever mode
+    [NUTCH-2475] - If and else-if branches has the same condition
+    [NUTCH-2513] - ant eclipse target fails with "protocol switch unsafe"
+    [NUTCH-2520] - Wrong Accept-Charset sent when http.accept.charset is not defined
+    [NUTCH-2533] - Injector: NullPointerException if seed URL dir contains non-file entries
+    [NUTCH-2536] - GeneratorReducer.count is a static variable
+    [NUTCH-2548] - Compressed content skipped. Content of size 78 was truncated to 74
+    [NUTCH-2581] - Caching of redirected robots.txt may overwrite correct robots.txt rules
+    [NUTCH-2637] - Number of fetcher reducers is misconfigured when the arg not passed
+    [NUTCH-2639] - bin/nutch fails to set native library path on Cygwin causing jobs to fail with UnsatisfiedLinkError
+    [NUTCH-2640] - Typo: DbUpdaterJob: updatinging all
+    [NUTCH-2641] - ClassCastException in webui
+    [NUTCH-2642] - MoreIndexingFilter parses ISO 8601 UTC dates in local time zone
+    [NUTCH-2722] - Fetch dependencies via https
+
+New Feature
+
+    [NUTCH-1741] - Support of Sitemaps in Nutch 2.x
+    [NUTCH-2199] - Documentation for Nutch 2.X REST API
+    [NUTCH-2238] - Indexer for Elasticsearch 2.x
+    [NUTCH-2243] - Documentation for Nutch 2.X REST API
+    [NUTCH-2344] - Authentication Support for Web GUI
+    [NUTCH-2373] - Indexer for Hbase
+    [NUTCH-2389] - Precise data parsing using Jsoup CSS selectors
 
 Improvement
 
-    [NUTCH-1763] - Improving comments on the Injector Class
-    [NUTCH-2034] - CrawlDB filtered documents counter.
+    [NUTCH-1314] - Impose a limit on the length of outlink target urls
+    [NUTCH-1678] - Remove dependency on org.apache.oro
+    [NUTCH-1756] - Security layer for NutchServer
     [NUTCH-2035] - Regex filter using case sensitive rules.
-    [NUTCH-2046] - The crawl script should be able to skip an initial injection.
-    [NUTCH-2135] - Ant Eclipse build does not include protocol-interactiveselenium
-    [NUTCH-2193] - Upgrade feed parser plugin to use rome 1.5
-    [NUTCH-2216] - db.ignore.*.links to optionally follow internal redirects
-    [NUTCH-2281] - Support non-default FileSystem
-    [NUTCH-2296] - Elasticsearch Indexing Over Rest
-    [NUTCH-2320] - URLFilterChecker to run as TCP Telnet service
-    [NUTCH-2335] - Injector not to filter and normalize existing URLs in CrawlDb
-    [NUTCH-2362] - Upgrade MaxMind GeoIP version in index-geoip
-    [NUTCH-2368] - Variable generate.max.count and fetcher.server.delay
-    [NUTCH-2370] - FileDumper: save JSON mapping file -> URL
+    [NUTCH-2040] - Upgrade to recent version of Crawler-Commons
+    [NUTCH-2122] - Implement Javadoc package-info.java for webui packages
+    [NUTCH-2288] - Upgrade Restlet to 2.3.7
+    [NUTCH-2302] - RAMConfManager Could Be Constructed With Custom Configuration
+    [NUTCH-2303] - NutchServer Could Be Able To Select a Configuration to Use
+    [NUTCH-2306] - Id of Active Configuration Could Be Stored at NutchStatus and Exposed via REST API
+    [NUTCH-2308] - Implement SSL Connection Test at TestNutchAPI
+    [NUTCH-2347] - Use Logger Instead of Printing Throwable
+    [NUTCH-2351] - Log with Generic Class Name at Nutch 2.x
+    [NUTCH-2374] - Upgrade Nutch 2.X to Gora 0.7
     [NUTCH-2376] - Improve configurability of HTTP Accept* header fields
     [NUTCH-2378] - ChildFirst plugin classloader
-    [NUTCH-2380] - indexer-elastic version upgrade to 5.3.0
     [NUTCH-2397] - Parser to add paragraph line breaks
-    [NUTCH-2400] - Solr 6.6.0 compatibility
-    [NUTCH-2406] - Sum up constants, make minor changes
-    [NUTCH-2408] - CrawlDb: allow update from unparsed segments
-    [NUTCH-2409] - Injector: complete command-line help and counters
-    [NUTCH-2414] - Allow LanguageIndexingFilter to actually filter documents by language.
-    [NUTCH-2430] - Complete plugin build configuration
-    [NUTCH-2431] - URLFilterchecker to implement Tool-interface
-    [NUTCH-2439] - Upgrade to Apache Tika 1.17
-    [NUTCH-2443] - Extract links from the video tag with the parse-html plugin
-    [NUTCH-2445] - Fetcher following outlinks to keep track of already fetched items
-    [NUTCH-2463] - Enable sampling CrawlDB
+    [NUTCH-2438] - Upgrade Nutch 2.X to Gora 0.8
     [NUTCH-2468] - should filter out invalid URLs by default
-    [NUTCH-2470] - CrawlDbReader -stats to show quantiles of score
-    [NUTCH-2477] - Refactor *Checker classes to use base class for common code
-    [NUTCH-2480] - Upgrade crawler-commons dependency to 0.9
+    [NUTCH-2519] - Log mapreduce job counters in local mode
+    [NUTCH-2527] - URL filter: provide rules to exclude localhost and private address spaces
+    [NUTCH-2667] - Update Tika and Commons Collections 4
+    [NUTCH-2668] - Integrate OWASP dependency checks as ant target
+    [NUTCH-2734] - Upgrade 2.x to use Tika 1.22
 
-New Feature
+Wish
 
-    [NUTCH-1465] - Support sitemaps in Nutch
-    [NUTCH-1932] - Automatically remove orphaned pages
-    [NUTCH-2333] - Indexer for RabbitMQ
-    [NUTCH-2338] - URLNormalizerChecker to run as TCP Telnet service
-    [NUTCH-2415] - Create a JEXL based IndexingFilter
-    [NUTCH-2433] - Html Parser: keep htmltag where the outlinks are found
-    [NUTCH-2435] - New configuration allowing to choose whether to store 'parse_text' directory or not.
-    [NUTCH-2484] - Extend indexer-elastic-rest to support languages
+    [NUTCH-2022] - Investigate better documentation for the Nutch REST API's
 
 Task
 
-    [NUTCH-2181] - Add Webpage for 3rd Party Connectors/Libraries to Apache Nutch
+    [NUTCH-1228] - Change mapred.task.timeout to mapreduce.task.timeout in fetcher
+    [NUTCH-2192] - Get rid of oro
+    [NUTCH-2264] - Check Forbidden APIs at Build
 
+Nutch 2.3.1 Release 22092015 (ddmmyyyy)
+Release Report - http://s.apache.org/nutch_2.3.1
 
-Nutch 1.13 Release 28/03/2017 (dd/mm/yyyy)
-Release Report: https://s.apache.org/wq3x
+* NUTCH-2168 Parse-tika fails to retrieve parser (snagel, Auro Miralles, lewismc)
 
-Sub-task
+* NUTCH-2169 Integrate index-html into Nutch build (snagel)
 
-    [NUTCH-2246] - Refactor /seed endpoint for backward compatibility
+* NUTCH-2143 GeneratorJob ignores batch id passed as argument (liuqibj, lewismc, snagel)
 
-Bug
-
-    [NUTCH-1553] - Property 'indexer.delete.robots.noindex' not working when using parser-html.
-    [NUTCH-2242] - lastModified not always set
-    [NUTCH-2291] - Fix mrunit dependencies
-    [NUTCH-2337] - urlnormalizer-basic to strip empty port
-    [NUTCH-2345] - FetchItemQueue logs are logged with wrong class name
-    [NUTCH-2349] - urlnormalizer-basic NPE for ill-formed URL "http:/"
-    [NUTCH-2357] - Index metadata throw Exception because writable object cannot be cast to Text
-    [NUTCH-2359] - Parsefilter-regex raises IndexOutOfBoundsException when rules are ill-formed
-    [NUTCH-2364] - http.agent.rotate: IllegalArgumentException / last element of agent names ignored
-    [NUTCH-2366] - Deprecated Job constructor in hostdb/ReadHostDb.java
-
-Improvement
-
-    [NUTCH-1308] - Add main() to ZipParser
-    [NUTCH-2164] - Inconsistent 'Modified Time' in crawl db
-    [NUTCH-2234] - Upgrade to elasticsearch 2.3.3
-    [NUTCH-2236] - Upgrade to Hadoop 2.7.2
-    [NUTCH-2262] - Utilize parameterized logging notation across Fetcher
-    [NUTCH-2272] - Index checker server to optionally keep client connection open
-    [NUTCH-2286] - CrawlDbReader -stats to show fetch time and interval
-    [NUTCH-2287] - Indexer-elastic plugin should use Elasticsearch BulkProcessor and BackoffPolicy
-    [NUTCH-2299] - Remove obsolete properties protocol.plugin.check.*
-    [NUTCH-2300] - Fetcher to optionally save robots.txt
-    [NUTCH-2327] - Seeds injected in REST workflow must be ingested into HDFS
-    [NUTCH-2329] - Update Slf4j logging for Java 8 and upgrade miredot plugin version
-    [NUTCH-2336] - SegmentReader to implement Tool
-    [NUTCH-2352] - Log with Generic Class Name at Nutch 1.x
-    [NUTCH-2355] - Protocol plugins to set cookie if Cookie metadata field is present
-    [NUTCH-2367] - Get single record from HostDB
-
-New Feature
-
-    [NUTCH-2132] - Publisher/Subscriber model for Nutch to emit events
-
-Task
-
-    [NUTCH-2171] - Upgrade Nutch Trunk to Java 1.8
-
- 
-Nutch 1.12 Release 28/05/2016 (dd/mm/yyyy)
-Release Report: https://s.apache.org/nutch1.12
-
-Comments
-
-Fellow committers, Nutch 1.12 contains a breaking change NUTCH-2220. Please use the note below and
-in the release announcement and keep it on top in this CHANGES.txt for the Nutch 1.12 release.
-
-* replace your old conf/nutch-default.xml with the conf/nutch-default.xml from Nutch 1.12 release
-* if you use LinkDB (e.g. invertlinks) and modified parameters db.max.inlinks and/or db.max.anchor.length
-  and/or db.ignore.internal.links, rename those parameters to linkdb.max.inlinks and
-  linkdb.max.anchor.length and linkdb.ignore.internal.links
-* db.ignore.internal.links and db.ignore.external.links now operate on the CrawlDB only
-* linkdb.ignore.internal.links and linkdb.ignore.external.links now operate on the LinkDB only
-
-Sub-task
-
-    [NUTCH-2250] - CommonCrawlDumper : Invalid format + skipped parts
-
-Bug
-
-    [NUTCH-2042] - parse-html increase chunk size used to detect charset
-    [NUTCH-2180] - FileDumper dumps data, but breaks midway on corrupt segments
-    [NUTCH-2189] - Domain filter must deactivate if no rules are present
-    [NUTCH-2203] - Suffix URL filter can't handle trailing/leading whitespaces
-    [NUTCH-2206] - Provide example scoring.similarity.stopword.file
-    [NUTCH-2213] - CommonCrawlDataDumper saves gzipped body in extracted form
-    [NUTCH-2223] - Upgrade xercesImpl to 2.11.0 to fix hang on issue in tika mimetype detection
-    [NUTCH-2224] - Average bytes/second calculated incorrectly in fetcher
-    [NUTCH-2225] - Parsed time calculated incorrectly
-    [NUTCH-2228] - Plugin index-replace unit test broken on Java 8
-    [NUTCH-2232] - DeduplicationJob should decode URL's before length is compared
-    [NUTCH-2241] - Unstable Selenium plugin in Nutch. Fixed bugs and enhanced configuration
-    [NUTCH-2256] - Inconsistent log level practice
-
-Improvement
-
-    [NUTCH-1233] - Rely on Tika for outlink extraction
-    [NUTCH-1712] - Use MultipleInputs in Injector to make it a single mapreduce job
-    [NUTCH-2172] - index-more: document format of contenttype-mapping.txt
-    [NUTCH-2178] - DeduplicationJob to optionally group on host or domain
-    [NUTCH-2182] - Make reverseUrlDirs file dumper option hash the URL for consistency
-    [NUTCH-2183] - Improvement to SegmentChecker for skipping non-segments present in segments directory
-    [NUTCH-2187] - Change FileDumper SHAs to all uppercase
-    [NUTCH-2195] - IndexingFilterChecker to optionally follow N redirects
-    [NUTCH-2196] - IndexingFilterChecker to optionally normalize
-    [NUTCH-2197] - Add solr5 solrcloud indexer support
-    [NUTCH-2204] - Remove junit lib from runtime
-    [NUTCH-2218] - Switch CrawlCompletion arg parsing to Commons CLI
-    [NUTCH-2221] - Introduce db.ignore.internal.links to FetcherThread
-    [NUTCH-2229] - Allow Jexl expressions on CrawlDatum's fixed attributes
-    [NUTCH-2231] - Jexl support in generator job
-    [NUTCH-2252] - Allow phantomjs as a browser for selenium options
-    [NUTCH-2263] - Support for mingram and maxgram at Unigram Cosine Similarity Model
-
-New Feature
-
-    [NUTCH-961] - Expose Tika's boilerpipe support
-    [NUTCH-1325] - HostDB for Nutch
-    [NUTCH-2144] - Plugin to override db.ignore.external to exempt interesting external domain URLs
-    [NUTCH-2190] - Protocol normalizer
-    [NUTCH-2191] - Add protocol-htmlunit
-    [NUTCH-2194] - Run IndexingFilterChecker as simple Telnet server
-    [NUTCH-2219] - Criteria order to be configurable in DeduplicationJob
-    [NUTCH-2227] - RegexParseFilter
-    [NUTCH-2245] - Developed the NGram Model on the existing Unigram Cosine Similarity Model
-
-Task
-
-    [NUTCH-2201] - Remove loops program from webgraph package
-    [NUTCH-2211] - Filter and normalizer checkers missing in bin/nutch
-    [NUTCH-2220] - Rename db.* options used only by the linkdb to linkdb.*
-
-Nutch 1.11 Release 03/12/2015 (dd/mm/yyyy)
-Release Report: http://s.apache.org/nutch11
-
-* NUTCH-2176 Clean up of log4j.properties (markus)
+* NUTCH-2042 parse-html increase chunk size used to detect charset (snagel)
 
 * NUTCH-2107 plugin.xml to validate against plugin.dtd (snagel)
 
-* NUTCH-2177 Generator produces only one partition even in distributed mode (jnioche, snagel)
+* NUTCH-2130 copyField rawcontent creates error within schema.xml (Sherban Drulea, lewismc, snagel)
 
-* NUTCH-2158 Upgrade to Tika 1.11 (jnioche, snagel)
+* NUTCH-2018 Ensure that the Docker containers for Nutch 2.X are part of the Release Management Documentation (lewismc)
 
-* NUTCH-2175 Typos in property descriptions in nutch-default.xml (Roannel Fernández Hernández via snagel)
+* NUTCH-2105 Update Nutch Cassandra Dockerfile to work with Gora Nutch 2.3.1 (lewismc)
 
-* NUTCH-2069 Ignore external links based on domain (jnioche)
+* NUTCH-1946 Upgrade to Gora 0.6.1 (lewismc, hsaputra, Jeroen Vlek)
 
-* NUTCH-2173 String.join in FileDumper breaks the build (joyce)
+* NUTCH-2094 Stopping and Restarting a crawl has issues in the Web UI (Prerna Satija via mattmann)
 
-* NUTCH-2166 Add reverse URL format to dump tool (joyce)
+* NUTCH-1679 UpdateDb using batchId, link may override crawled page (Tien Nguyen Manh, Koen Smets, Alfonso Nishikawa, Alexander Kingson via lewismc)
 
-* NUTCH-2157 Addressing Miredot REST API Warnings (Sujen Shah)
+* NUTCH-2077 Upgrade to Tika 1.10 (Michael Joyce, lewismc)
 
-* NUTCH-2165 FileDumper Util hard codes part-# folder name (joyce)
+* NUTCH-2045 index-basic incorrect assignment of next fetch time (page.getFetchTime()) as page fetch time (lewismc)
 
-* NUTCH-2167 Backport TableUtil from 2.x for URL reversing (joyce)
+* NUTCH-2019 ClassPathException sending topN argument for /job/create using Nutch 2.x RESTApi (Alex Koh, lewismc)
 
-* NUTCH-2160 Upgrade Selenium Java to 2.48.2 (lewismc, kwhitehall)
-
-* NUTCH-2120 Remove MapWritable from trunk codebase (lewismc)
-
-* NUTCH-1911 Improve DomainStatistics tool command line parsing (joyce)
-
-* NUTCH-2064 URLNormalizer basic to encode reserved chars and decode non-reserved chars (markus, snagel)
-
-* NUTCH-2159 Ensure that all WebApp files are copied into generated artifacts for 1.X Webapp (lewismc)
-
-* NUTCH-2154 Nutch REST API (DB) suffering NullPointerException (Aron Ahmadia, Sujen Shah via mattmann)
-
-* NUTCH-2150 Add protocolstats utility (Michael Joyce via mattmann)
-
-* NUTCH-2146 hashCode on the Outlink class (jorgelbg via mattmann)
-
-* NUTCH-2155 Create a "crawl completeness" utility (Michael Joyce via mattmann)
-
-* NUTCH-1988 Make nested output directory dump optional... again (Michael Joyce via lewismc)
-
-* NUTCH-1800 Documentation for Nutch 1.X and 2.X REST APIs (lewismc)
-
-* NUTCH-2149 REST endpoint to read Nutch sequence files (Sujen Shah)
-
-* NUTCH-2139 Basic plugin to index inlinks and outlinks (jorgelbg)
-
-* NUTCH-2128 Review and update mapred --> mapreduce config params in crawl script (lewismc)
-
-* NUTCH-2141 Change the InteractiveSelenium plugin handler Interface to return page content
-  (Balaji Gurumurthy via mattmann)
-
-* NUTCH-2129 Add protocol status tracking to crawl datum (Michael Joyce via mattmann)
-
-* NUTCH-2142 Nutch File Dump - FileNotFoundException (Invalid Argument) Error (Karanjeet Singh via mattmann)
-
-* NUTCH-2136 Implement a different version of Naive Bayes Parse Filter (Asitang Mishra)
-
-* NUTCH-2109 Create a brute force click-all-ajax-links utility fucntion for selenium interactive plugin (Asitang Mishra)
-
-* NUTCH-2108 Add a function to the selenium interactive plugin interface to do multiple manipulation of driver and then return the data (Asitang Mishra)
-
-* NUTCH-2124 Fetcher following same redirect again and again (Yogendra Kumar Soni via snagel)
-
-* NUTCH-2123 Seed List REST API returns Text but headers indicate/require JSON
-  (Aron Ahmadia, Sujen Shah via mattmann)
-
-* NUTCH-2086 Nutch 1.X Webui (Sujen Shah, mattmann via lewismc)
-
-* NUTCH-2121 Update javadoc link for Hadoop 2.4.0 in default.properties (Sujen Shah)
-
-* NUTCH-2119 Eclipse shows build path errors on building Nutch (Sujen Shah)
-
-* NUTCH-2117 NutchServer CLI Option for CMD_PORT is incorrect and should be CMD_HOST (zhangmianhongni via lewismc)
-
-* NUTCH-2115 - Add total counts to mimetype stats (Jimmy Joyce via lewismc)
-
-* NUTCH-2111 Delete temporary files location for selenium tmp files after driver quits (Kim Whitehall via lewismc)
-
-* NUTCH-2095 WARC exporter for the CommonCrawlDataDumper (jorgelbg)
-
-* NUTCH-2102 WARC Exporter (jnioche)
-
-* NUTCH-2106 Runtime to contain Selenium and dependencies only once (snagel)
-
-* NUTCH-2104 Add documentation to the protocol-selenium plugin Readme file 
-  re: selenium grid implementation (Kim Whitehall via mattmann)
-
-* NUTCH-2099 Refactoring the REST endpoints for integration with 
-  webui (Sujen Shah via mattmann)
-
-* NUTCH-2098 Add null SeedUrl constructor (Aron Ahmadia via mattmann)
-
-* NUTCH-2093 Indexing filters to use current signatures (markus)
-
-* NUTCH-2092: Unit Test for NutchServer (Sujen Shah via mattmann)
-
-* NUTCH-2096 Explicitly indicate broswer binary to use when selecting 
-  selenium remote option in config (Kim Whitehall via mattmann)
-
-* NUTCH-2090 Refactor Seed Resource in REST API (Sujen Shah
-  via mattmann)
-
-* NUTCH-2088 Add URL Processing Check to Interactive Selenium 
-  Handlers (Michael Joyce via mattmann)
-
-* NUTCH-2077 Upgrade to Tika 1.10 (Michael Joyce via lewismc)
-
-* NUTCH-1517 CloudSearch indexer (jnioche)
-
-* NUTCH-2085 Upgrade Guava (markus)
-
-* NUTCH-2084 SegmentMerger to report missing input dirs (markus)
-
-* NUTCH-2083 Implement functionality to shadow nutch-selenium-grid-plugin from Mo Omer (lewismc)
-
-* NUTCH-2049 Upgrade to Hadoop 2.4 (lewismc)
-
-* NUTCH-1486 Upgrade to Solr 4.10.2 (lewismc, markus)
-
-* NUTCH-2048 parse-tika: fix dependencies in plugin.xml (Michael Joyce via snagel)
-
-* NUTCH-2066 Parameterize Generate REST endpoint (Sujen Shah via mattmann)
-
-* NUTCH-2072 Deflate encoding support is broken when http.content.limit is set to -1 (Tanguy Moal via mattmann)
-
-* NUTCH-2062 Add Plugin for interacting with Selenium WebDriver (Michael Joyce, mattmann)
-
-* NUTCH-1785 Ability to index raw content (markus, lewismc)
-
-* NUTCH-2063 Add -mimeStats flag to FileDumper tool (Mike Joyce via lewismc)
-
-* NUTCH-2021 Use protocol-selenium to Capture Screenshots of the Page as it is Fetched (lewismc)
-
-* NUTCH-2058 Indexer plugin that allows RegEx replacements on the NutchDocument 
-  field values (Peter Ciuffetti via mattmann)
-
-* NUTCH-2059 protocol-httpclient, protocol-http unit test errors on Jenkins (Peter Ciuffetti via mattmann)
-
-* NUTCH-1980 Jexl expressions for CrawlDbReader (markus)
-
-* NUTCH-1692 SegmentReader was broken in distributed mode (markus, tejasp)
-
-* NUTCH-1684 ParseMeta to be added before fetch schedulers are run (markus)
-
-* NUTCH-2038 fix for NUTCH-2038: Naive Bayes classifier based html Parse filter (for filtering outlinks) 
-  (Asitang Mishra, snagel via mattmann)
-
-* NUTCH-2041 indexer fails if linkdb is missing (snagel)
-
-* NUTCH-2016 Remove unused class OldFetcher (snagel)
-
-* NUTCH-2000 Link inversion fails with .locked already exists (jnioche, snagel)
-
-* NUTCH-2036 Adding some continuous crawl goodies to the crawl script (jorge, snagel)
-
-* NUTCH-2039 Relevance based scoring filter (Sujen Shah, lewismc via mattmann)
-
-* NUTCH-2037 Job endpoint to support Indexing from the REST API (Sujen Shah via mattmann)
-
-* NUTCH-2017 Remove debug log from MimeUtil (snagel)
-
-* NUTCH-2027 seed list REST endpoint for Nutch 1.10 (Asitang Mishra via mattmann)
-
-* NUTCH-2031 Create Admin End point for Nutch 1.x REST service (Sujen Shah via mattmann)
-
-* NUTCH-2015 Make FetchNodeDb optional (off by default) if NutchServer is not used (Sujen Shah via mattmann)
-
-* NUTCH-208 http: proxy exception list: (Matthias Günter, siren, markus, lewismc)
-
-* NUTCH-2007 add test libs to classpath of bin/nutch junit (snagel)
-
-* NUTCH-1995 Add support for wildcard to http.robot.rules.whitelist (totaro)
-
-* NUTCH-2013 Fetcher: missing logs "fetching ..." on stdout (snagel)
-
-* NUTCH-2014 Fetcher hang-up on completion (snagel)
-
-* NUTCH-2011 Endpoint to support realtime JSON output from the fetcher (Sujen Shah via mattmann)
-
-* NUTCH-2006 IndexingFiltersChecker to take custom metadata as input (jnioche)
-
-* NUTCH-2008 IndexerMapReduce to use single instance of NutchIndexAction for deletions (snagel)
-
-* NUTCH-1998 Add support for user-defined file extension to CommonCrawlDataDumper (totaro via mattmann)
-
-* NUTCH-1873 Solr IndexWriter/Job to report number of docs indexed. (snagel via lewismc)
- 
-* NUTCH-1934 Refactor Fetcher in trunk (lewismc)
-
-* NUTCH-2004 ParseChecker does not handle redirects (mjoyce via lewismc)
-
-Nutch 1.10 Release - 29/04/2015 (dd/mm/yyyy)
-Release Report: http://s.apache.org/nutch10
-
-* NUTCH-1969 URL Normalizer properly handling slashes (markus via mattmann)
-
-* NUTCH-2001 Sub Collection Field Name incorrect in nutch-default.xml 
-  (Jeff Cocking via mattmann)
-
-* NUTCH-1997 Add CBOR "magic header" to CommonCrawlDataDumper 
-  output (Giuseppe Totaro, Luke Sh via mattmann)
-
-* NUTCH-1991 Tika mime detection not using Nutch supplied tika-mimetypes.xml for content based 
-  detection (Iain Lopata, snagel via mattmann)
+* NUTCH-1923 Nutch + Cassandra Docker (Mohamed Meabed via lewismc)
 
 * NUTCH-1994 Upgrade to Apache Tika 1.8 (lewismc)
 
-* NUTCH-1996 Make protocol-selenium README part of plugin (lewismc)
-
 * NUTCH-1990 Use URI.normalise() in BasicURLNormalizer (snagel, jnioche)
-
-* NUTCH-1973 Job Administration end point for the REST service (Sujen Shah via mattmann)
-
-* NUTCH-1697 SegmentMerger to implement Tool (markus, snagel)
-
-* NUTCH-1987 - Make bin/crawl indexer agnostic (Michael Joyce, snagel via mattmann)
- 
-* NUTCH-1989 Handling invalid URLs in CommonCrawlDataDumper (Giuseppe Totaro via mattmann)
-
-* NUTCH-1988 Make nested output directory dump optional (Michael Joyce via mattmann)
-
-* NUTCH-1927 Create a whitelist of IPs/hostnames to allow skipping of RobotRules parsing (mattmann, snagel)
-
-* NUTCH-1986 Clarify Elastic Search Indexer Plugin Settings (Michael Joyce via mattmann)
-
-* NUTCH-1906 Typo in CrawlDbReader command line help (Michael Joyce via mattmann)
-
-* NUTCH-1911 Improve DomainStatistics tool command line parsing (Michael Joyce via mattmann)
-
-* NUTCH-1854 bin/crawl fails with a parsing fetcher (Asitang Mishra via snagel)
 
 * NUTCH-1981 Upgrade to icu4j 55.1 (Marko Asplund via snagel)
 
-* NUTCH-1960 JUnit test for dump method of CommonCrawlDataDumper (Giuseppe Totaro via mattmann)
-
-* NUTCH-1983 CommonCrawlDumper and FileDumper don't dump correct JSON (mattmann)
-
-* NUTCH-1972 Dockerfile for Nutch 1.x (Michael Joyce via mattmann)
-
-* NUTCH-1771 Indexer fails if a segment is corrupted or incomplete (Diaa, Chong Li via snagel) 
-
-* NUTCH-1975 New configuration for CommonCrawlDataDumper tool (Giuseppe Totaro via mattmann)
-
-* NUTCH-1979 CrawlDbReader to implement Tool (markus)
-
-* NUTCH-1970 Pretty print JSON output in config resource (Tyler Pasulich, mattmann)
-
-* NUTCH-1976 Allow Users to Set Hostname for Server (Tyler Palsulich via mattmann)
+* NUTCH-1944 Index HTML raw content (meabed via mattmann)
 
 * NUTCH-1941 Optional rolling http.agent.name's (Asitang Mishra, lewismc via snagel)
 
-* NUTCH-1959 Improving CommonCrawlFormat implementations (Giuseppe Totaro via mattmann)
-
-* NUTCH-1974 keyPrefix option for CommonCrawlDataDumper tool (Giuseppe Totaro via mattmann)
-
-* NUTCH-1968 File Name too long issue of DumpFileUtil.java file (Xin Zhang, Renxia Wang via mattmann)
-
-* NUTCH-1966 Configuration endpoint for 1x REST API (Sujen Shah via mattmann)
-
-* NUTCH-1967 Possible SIooBE in MimeAdaptiveFetchSchedule (markus)
-
-* NUTCH-1957 FileDumper output file name collisions (Renxia Wang via mattmann)
-
-* NUTCH-1955 ByteWritable missing in NutchWritable (markus)
-
-* NUTCH-1956 Members to be public in URLCrawlDatum (markus)
- 
-* NUTCH-1954 FilenameTooLong error appears in CommonCrawlDumper (mattmann)
-
-* NUTCH-1949 Dump out the Nutch data into the Common Crawl format (Giuseppe Totaro via lewismc)
-
-* NUTCH-1950 File name too long (Jiaheng Zhang, Chong Li via mattmann)
-
-* NUTCH-1921 Optionally disable HTTP if-modified-since header (markus)
-
-* NUTCH-1933 nutch-selenium plugin (Mo Omer, Mohammad Al-Moshin, lewismc)
-
-* NUTCH-827 HTTP POST Authentication (Jasper van Veghel, yuanyun.cn, snagel, lewismc)
-
-* NUTCH-1724 LinkDBReader to support regex output filtering (markus)
-
-* NUTCH-1939 Fetcher fails to follow redirects (Leo Ye via snagel)
-
-* NUTCH-1913 LinkDB to implement db.ignore.external.links (markus, snagel)
+* NUTCH-1925 Upgrade to Apache Tika 1.7 palsulich.p2.v2.patch (Tyler Palsulich via lewismc)
 
 * NUTCH-1925 Upgrade to Apache Tika 1.7 (Tyler Palsulich via markus)
 
-* NUTCH-1323 AjaxNormalizer (markus)
-
-* NUTCH-1918 TikaParser specifies a default namespace when generating DOM (jnioche)
-
-* NUTCH-1889 Store all values from Tika metadata in Nutch metadata (jnioche)
-
-* NUTCH-865 Format source code in unique style (lewismc)
-
-* NUTCH-1893 Parse-tika failes to parse feed files (Mengying Wang via snagel)
+* NUTCH-1924 Nutch + HBase Docker (Radosław Stankiewicz via lewismc)
 
 * NUTCH-1920 Upgrade Nutch to use Java 1.7 (lewismc)
 
-* NUTCH-1919 Getting timeout when server returns Content-Length: 0 (jnioche)
+* NUTCH-1893 Parse-tika failes to parse feed files (Mengying Wang via snagel)
 
-* NUTCH-1912 Dump tool -mimetype parameter needs to be optional to prevent NPE (Tyler Palsulich via lewismc)
+Nutch 2.3 Release 08012015 (ddmmyyyy)
+Release Report - http://s.apache.org/nutch_2.3
 
-* NUTCH-1881 ant target resolve-default to keep test libs (snagel)
+* NUTCH-1779 Apply formatting to the code (lewismc)
 
-* NUTCH-1660 Index filter for Page's latitude and longitude (Yasin Kılınç, lewismc)
+* NUTCH-1907 Incorrect output of Outlinks to Hosts within HostDbUpdateReducer (lewismc)
 
-* NUTCH-1140 index-more plugin, resetTitle creates multiple values in title field (Joe Liedtke, kaveh minooie via snagel)
+* NUTCH-1856 Document webpage.avsc and host.avsc (lewismc)
 
-* NUTCH-1904 Schema for Solr4 doesn't include _version_ field (mattmann)
+* NUTCH-1834 GeneratorMapper behavior depends on log level (Gerhard Gossen via snagel)
+
+* NUTCH-1899 upgrade restlet lib to prevent build failure (talat)
+
+* NUTCH-1797 remove unused package o.a.n.html (Saurabh Chhajed via snagel)
+
+* NUTCH-1888 Specify HTMLMapper to use in TikaParser (Halil Simsek via jnioche)
 
 * NUTCH-1897 Easier debugging of plugin XML errors (markus)
 
-* NUTCH-1823 Upgrade to elasticsearch 1.4.1 (Phu Kieu, markus via lewismc)
+* NUTCH-1823 Upgrade to elasticsearch 1.4.1 (Phu Kieu, markus, lewismc)
 
-* NUTCH-1592 TikaParser can uppercase the element names while generating the DOM (jnioche)
+* NUTCH-1829 Generator : unable to distinguish real errors (Mathieu Bouchard, jnioche, snagel)
+
+* NUTCH-1778 Generator not logging number of URLs in batch correctly (jnioche via snagel)
 
 * NUTCH-1877 Suffix URL filter to ignore query string by default (markus via snagel)
-
-* NUTCH-1890 Major Typo in Documentation for Integrating Nutch and Solr (Boadu Akoto Charles Jnr, mattmann)
-
-* NUTCH-1887 Specify HTMLMapper to use in TikaParser (jnioche)
-
-* NUTCH-1884 NullPointerException in parsechecker and indexchecker with symlinks in file URL (Mengying Wang, snagel)
 
 * NUTCH-1825 protocol-http may hang for certain web pages (Phu Kieu via snagel)
 
@@ -935,82 +192,47 @@ Release Report: http://s.apache.org/nutch10
 
 * NUTCH-1879 Regex URL normalizer should remove multiple slashes after file: protocol (snagel)
 
-* NUTCH-1883 bin/crawl: use function to run bin/nutch and check exit value (snagel)
+* NUTCH-1820 remove field "orig" which duplicates "id" (lewismc, snagel)
 
-* NUTCH-1865 Enable use of SNAPSHOT's with Nutch Ivy dependency management (lewismc)
+* NUTCH-1843 Upgrade to Gora 0.5 (talat, lewismc, Kiril Menshikov, drazzib)
+
+* NUTCH-1883 bin/crawl: use function to run bin/nutch and check exit value (snagel)
 
 * NUTCH-1882 ant eclipse target to add output path to src/test (snagel)
 
+* NUTCH-1827 Port NUTCH-1467 and NUTCH-1561 to 2.x (snagel)
+
 * NUTCH-1876 Upgrade to Crawler Commons 0.5 (jnioche)
-
-* NUTCH-1874 FileDumper comment typos ( Arthur Cinader via lewismc)
-
-* NUTCH-1164 Write JUnit tests for protocol-http (nimafl via snagel)
-
-* NUTCH-1868 Document and improve CLI for FileDumper tool (lewismc)
-
-* NUTCH-1869 Add a flag to -mimeType fiag to FileDumper (lewismc)
-
-* NUTCH-1867 CrawlDbReader: use setFloat to pass min score (lewismc, snagel)
-
-* NUTCH-1826, NUTCH-1864 indexchecker fails if solr.server.url not configured (lewismc, snagel)
 
 * NUTCH-1866 ant eclipse target should not delete runtime (nimafl via lewismc)
 
-* NUTCH-1857 readb -dump -format csv should use comma (lewismc)
+* NUTCH-1859 Make Nutch webapp port configurable (Nima Falaki via lewismc)
 
-* NUTCH-1853 Add commented out WebGraph executions to ./bin/crawl (lewismc)
+* NUTCH-1848 Bug in DashboardPage.html instances counter (Nima Falaki via lewismc)
 
-* NUTCH-1844 testresources/testcrawl not referenced anywhere in code (mattmann)
+* NUTCH-841 Create a Wicket-based Web Application for Nutch (Fjodor Vershinin via lewismc)
 
-* NUTCH-1839 Improve WebGraph CLI parsing (lewismc)
-
-* NUTCH-1526 Create SegmentContentDumperTool for easily extracting out file contents from SegmentDirs (mattmann, lewismc, Julien Le Dem)
+* NUTCH-1832 Make Nutch work without an indexer (mattmann via lewismc)
 
 * NUTCH-1840 the describe function in SolrIndexWriter is not correct (kaveh minooie via jnioche)
 
-* NUTCH-1837 Upgrade to Tika 1.6 (jnioche)
+* NUTCH-1837 Upgrade to Tika 1.6 (lewismc)
 
 * NUTCH-1829 Generator : unable to distinguish real errors (Mathieu Bouchard via jnioche)
- 
-* NUTCH-1835 Nutch's Solr schema doesn't work with Solr 4.9 because of the RealTimeGet handler (mattmann)
-
-* NUTCH-1833 Include version number within nutch binary usage statement (Rishi Verma via mattmann)
-
-* NUTCH-1832 Make Nutch work without an indexer (mattmann)
 
 * NUTCH-1828 bin/crawl : incorrect handling of nutch errors (Mathieu Bouchard via jnioche)
-
-* NUTCH-1775 IndexingFilter: document origin of passed CrawlDatum (snagel)
 
 * NUTCH-1693 TextMD5Signature computed on textual content (Tien Nguyen Manh, markus via snagel)
 
 * NUTCH-1409 remove deprecated properties db.{default,max}.fetch.interval, generate.max.per.host.by.ip (Matthias Agethle via snagel)
 
-Nutch 1.9 Release Change Log - 12/08/2014 (dd/mm/yyyy)
-Release Report - http://s.apache.org/1.9-release
-
-* NUTCH-1561 improve usability of parse-metatags and index-metadata (snagel)
+* NUTCH-1819 batchId in GeneratorJob ( Fjodor Vershinin via lewismc)
 
 * NUTCH-1708 use same id when indexing and deleting redirects (snagel)
 
-* NUTCH-1818 Add deps-test-compile task for building plugins (jnioche)
-
 * NUTCH-1817 Remove pom.xml from source (jnioche)
 
-* NUTCH-926 Redirections from META tag don't get filtered (snagel)
-
-* NUTCH-1422 Bypass signature comparison when a document is redirected (snagel)
-
-* NUTCH-1502 Test for CrawlDatum state transitions (snagel)
-
-* NUTCH-1804 Move JUnit dependency to test scope (jnioche)
-
 * NUTCH-1811 bin/nutch junit to use junit 4 test runner (snagel)
-
-* NUTCH-1799 ANT Eclipse task discovers all plugin jars automatically (jnioche)
-
-* NUTCH-578 URL fetched with 403 is generated over and over again (snagel)
 
 * NUTCH-1776 Log incorrect plugin.folder file path (Diaa via snagel)
 
@@ -1018,11 +240,11 @@ Release Report - http://s.apache.org/1.9-release
 
 * NUTCH-1605 MIME type detector recognizes xlsx as zip file (snagel)
 
-* NUTCH-1802 Move TestbedProxy to test environment (jnioche)
-
-* NUTCH-1803 Put test dependencies in a separate lib dir (jnioche)
-
 * NUTCH-385 Improve description of thread related configuration for Fetcher (jnioche,lufeng)
+
+* NUTCH-1798 Crawl script not calling index command correctly (Aaron Bedward via jnioche)
+
+* NUTCH-1769 REST API refactoring (Fjodor Vershinin via lewismc)
 
 * NUTCH-1633 slf4j is provided by hadoop and should not be included in the job file (kaveh minooie via jnioche)
 
@@ -1032,138 +254,139 @@ Release Report - http://s.apache.org/1.9-release
 
 * NUTCH-1718 redefine http.robots.agent as "additional agent names" (snagel, Tejas Patil, Daniel Kugel)
 
-* NUTCH-1794 IndexingFilterChecker to optionally dumpText (markus)
+* NUTCH-1796 Ensure Gora object builders are used as oppose to empty constructors (snagel via lewismc)
 
 * NUTCH-1590 [SECURITY] Frame injection vulnerability in published Javadoc (jnioche)
-
-* NUTCH-1793 HttpRobotRulesParser not configured properly (jnioche)
-
-* NUTCH-1647 protocol-http throws 'unzipBestEffort returned null' for redirected pages (jnioche)
 
 * NUTCH-1736 Can't fetch page if http response header contains Transfer-Encoding：chunked (ysc via jnioche)
 
 * NUTCH-1782 NodeWalker to return current node (markus)
 
-* NUTCH-1758 IndexChecker to send document to IndexWriters (jnioche)
+* NUTCH-1781 Update gora-*-mapping.xml and gora.proeprties to reflect Gora 0.4 (lewismc)
 
-* NUTCH-1786 CrawlDb should follow db.url.normalizers and db.url.filters (Diaa via markus)
+* NUTCH-1768 Upgrade to ElasticSearch 1.1.0 (jnioche)
 
-* NUTCH-1757 ParserChecker to take custom metadata as input (jnioche)
+* NUTCH-1634 readdb -stats shows the result twice (kaveh minooie via jnioche)
+
+* NUTCH-1780 ttl and gc_grace_seconds attributes are missing from gora-cassandra-mapping.xml file (kaveh minooie via lewismc)
 
 * NUTCH-1676 Add rudimentary SSL support to protocol-http (jnioche, markus)
 
-* NUTCH-1772 Injector does not need merging if no pre-existing crawldb (jnioche)
+* NUTCH-1674 Use batchId filter to enable scan (GORA-119) for Fetch,Parse,Update,Index (Tien Nguyen Manh and Alparslan Avcı via jnioche)
+
+* NUTCH-1714 Upgrade to Gora 0.4 (Alparslan Avcı via jnioche)
 
 * NUTCH-1752 Cache robots.txt rules per protocol:host:port (snagel)
 
 * NUTCH-1613 Timeouts in protocol-httpclient when crawling same host with >2 threads (brian44 via jnioche)
 
-* NUTCH-1766 Generator to unlock crawldb and remove tempdir if generate job fails (Diaa via jnioche)
-
-* NUTCH-207 Bandwidth target for fetcher rather than a thread count (jnioche)
-
 * NUTCH-1182 fetcher to log hung threads (snagel)
 
-* NUTCH-1759 Upgrade to Crawler Commons 0.4 (jnioche)
+* NUTCH-1618 Turn speculative execution off for Fetching (talat)
 
-* NUTCH-1764 readdb to show command-line help if no action (-stats, -dump, etc.) given (Diaa via snagel)
+* NUTCH-1657 ORIGINAL_CHAR_ENCODING and CHAR_ENCODING_FOR_CONVERSION never set in HTMLParser (talat)
 
-* NUTCH-1700 Remove deprecated code from creativecommons plugin (lewismc)
+* NUTCH-1725 CleaningJob's reducer does not commit deleted docs. (ilhamikalkan via talat)
 
-* NUTCH-1761 Crawl script fails to find job file if not started from inside bin dir (David Hosking, jnioche)
+* NUTCH-1728 indexer-solr plugin is not delete docs from Solr (ilhamikalkan via talat)
 
-* NUTCH-1603 ZIP parser complains about truncated PDF file (snagel)
+* NUTCH-1753 Eclipse dependecy problem for 2.x (talat)
 
 * NUTCH-1720 Duplicate lines in HttpBase.java (Walter Tietze via jnioche)
 
-* NUTCH-1750 Improvement of Fetcher's reportStatus (jnioche)
+* NUTCH-797 URL not properly constructed when link target begins with a "?" (Doug Cook, Robert Hohman, Stondet, ab via snagel)
 
-* NUTCH-1747 Use AtomicInteger as semaphore in Fetcher (jnioche)
+* NUTCH-1759 Upgrade to Crawler Commons 0.4 (jnioche)
 
-* NUTCH-1735 code dedup fetcher queue redirects (snagel)
+* NUTCH-1700 Remove deprecated code in src/plugin/creativecommons/build.xml (lewismc)
 
-* NUTCH-1745 Upgrade to ElasticSearch 1.1.0 (jnioche)
+* NUTCH-1761 Crawl script fails to find job file if not started from inside bin dir (David Hosking, jnioche)
 
-* NUTCH-1645 Junit Test Case for Adaptive Fetch Schedule class (Yasin Kılınç, lufeng, Sertac TURKEL via snagel)
+* NUTCH-1603 ZIP parser complains about truncated PDF file (snagel via lewismc)
 
-* NUTCH-1737 Upgrade to recent JUnit 4.x (lewismc)
+* NUTCH-1743 parsechecker to show outlinks (snagel)
+
+* NUTCH-1732 Better cmd line parsing for NutchServer (Fjodor Vershinin via lewismc)
+
+* NUTCH-1751 Empty anchors should not index (Sertac TURKEL via lewismc)
 
 * NUTCH-1733 parse-html to support HTML5 charset definitions (snagel)
 
+* NUTCH-1727 Configurable length for Tlds (Sertac TURKEL via lewismc)
+
+* NUTCH-1738 Expose number of URLs generated per batch in GeneratorJob (Talat UYARER via lewismc)
+
 * NUTCH-1671 indexchecker to add digest field (snagel, lufeng)
 
-Nutch 1.8      - 11/03/2014 (dd/mm/yyyy)
-Release Report - http://s.apache.org/oHY
+* NUTCH-1645 Junit Test Case for Adaptive Fetch Schedule class (Yasin Kılınç, lufeng, Sertac TURKEL via snagel)
 
-* NUTCH-1706 IndexerMapReduce does not remove db_redir_temp (markus, snagel)
-
-* NUTCH-1113 SegmentMerger can now be safely used to merge segments (Edward Drapkin, markus, snagel)
+* NUTCH-1478 Parse-metatags and index-metadata plugin for Nutch 2.x series (kiran, Nguyen Manh Tien, Talat UYARER, Vangelis Karvounis via lewismc)
 
 * NUTCH-1729 Upgrade to Tika 1.5 (jnioche)
 
-* NUTCH-1707 DummyIndexingWriter (markus)
-
 * NUTCH-1721 Upgrade to Crawler commons 0.3 (tejasp)
 
-* NUTCH-1253 Incompatable neko and xerces versions (snagel, lewismc)
+* NUTCH-1719 DomainStatistics fails in 2.x because URL is not unreversed (Gerhard Gossen via lewismc)
+
+* NUTCH-1253 Incompatable neko and xerces versions (snagel, lewismc, Talat UYARER)
 
 * NUTCH-1715 RobotRulesParser adds additional '*' to the robots name (tejasp)
 
 * NUTCH-356 Plugin repository cache can lead to memory leak (Enrico Triolo, Doğacan Güney via markus)
 
-* NUTCH-1413 Record response time (Yasin Kılınç, Talat Uyarer, snagel)
+* NUTCH-1164 Write JUnit tests for protocol-http (Sertac TURKEL via tejasp)
 
-* NUTCH-1680 CrawlDbReader to dump minRetry value (markus)
+* NUTCH-1710 Add gora package logging to log4j.properties (lewismc)
+
+* NUTCH-1655 Indexer Plugin for Elastic Search (Talat UYARER via lewismc)
 
 * NUTCH-1699 Tika Parser - Image Parse Bug (Mehmet Zahid Yüzügüldü, snagel via lewismc)
 
-* NUTCH-1695 Add NutchDocument.toString() to ease debugging (markus)
+* NUTCH-1568 port pluggable indexing architecture to 2.x (Talat UYARER via lewismc)
 
-* NUTCH-1675 NutchField to support long (markus)
+* NUTCH-1672 Inlinks are added twice in DbUpdateReducer (Tien Nguyen Manh via lewismc)
 
-* NUTCH-1670 set same crawldb directory in mergedb parameter (lufeng via tejasp)
+* NUTCH-1667 Updatedb always ignore batchId (Tien Nguyen Manh via lewismc)
 
-* NUTCH-1080 Type safe members, arguments for better readability (tejasp)
+* NUTCH-1695 NutchDocument.toString() (markus via lewismc)
 
-* NUTCH-1360 Suport the storing of IP address connected to when web crawling (lewismc, ferdy and Yasin Kılınç)
+* NUTCH-1696 Enable use of (Gora) SNAPSHOT dependencies (lewismc)
 
-* NUTCH-1681 In URLUtil.java, toUNICODE method does not work correctly (İlhami KALKAN, snagel via markus)
+* NUTCH-1681 In URLUtil.java, toUNICODE method does not work correctly (Ä°lhami KALKAN, snagel, markus via lewismc) 
 
-* NUTCH-1668 Remove package org.apache.nutch.indexer.solr (jnioche)
+* NUTCH-1673 Title isn't reset in MoreIndexingFilter (Nguyen Manh Tien via lewismc)
 
 * NUTCH-1621 Remove deprecated class o.a.n.crawl.Crawler (Rui Gao via jnioche)
 
-* NUTCH-656 Generic Deduplicator (jnioche, snagel)
+* NUTCH-1651 modifiedTime and prevmodifiedTime never set (Talat UYARER via lewismc)
 
-* NUTCH-1100 Avoid NPE in SOLRDedup (markus)
+* NUTCH-1360 Suport the storing of IP address connected to when web crawling (ferdy, lewismc, Yasin Kılınç)
 
-* NUTCH-1666 Optimisation for BasicURLNormalizer (jnioche)
+* NUTCH-1588 Port NUTCH-1245 URL gone with 404 after db.fetch.interval.max stays db_unfetched in CrawlDb and is generated over and over again to 2.x (Talat UYARER via lewismc)
 
-* NUTCH-1656 ParseMeta not passed to CrawlDatum for not_modified (markus)
+* NUTCH-1650 Adaptive Fetch Scheduler interval Wrong Set (Talat UYARER via lewismc)
 
-* NUTCH-1606 Check that Factory classes use the cache in a thread safe way (jnioche)
+* NUTCH-1413 Record response time (Yasin KILINC, Talat UYARER, snagel via lewismc)
 
-* NUTCH-1653 AbstractScoringFilter (jnioche)
+* NUTCH-1125 JUnit test for tld (Sertac TURKEL via lewismc)
 
-* NUTCH-1562 Order of execution for scoring filters (jnioche, snagel)
+* NUTCH-1124 JUnit test for scoring-opic (Talat UYARER via lewismc)
 
-* NUTCH-1640 Reuse ParseUtil instance in ParseSegment (Mitesh Singh Jat via jnioche)
+* NUTCH-1641 Log timings for main jobs (jnioche)
 
-* NUTCH-1639 bin/crawl fails on mac os (various contributors via snagel)
+* NUTCH-1556 enabling updatedb to accept batchId (kaveh minooie,Feng)
 
-* NUTCH-1646 IndexerMapReduce to consider DB status (markus)
+* NUTCH-1619 Writes Dmoz Description and Title information to db with snippet argument ( Yasin Kılınç via feng)
 
-* NUTCH-1636 Indexer to normalize and filter repr URL (Iain Lopata via snagel)
-
-* NUTCH-1637 URLUtil is missing getProtocol (markus)
-
-* NUTCH-1622 Create Outlinks with metadata (jnioche)
+* NUTCH-1631 Display Document Count Added To Solr Server (Furkan KAMACI via lewismc)
 
 * NUTCH-1629 Injector skips empty lines in seed files (kaveh minooie via jnioche)
 
-* NUTCH-911 protocol-file to return proper protocol status (Peter Lundberg via snagel)
+* NUTCH-1624 Typo in WebTableReader line 486 (kaveh minooie via lewismc)
 
-* NUTCH-806 Merge CrawlDBScanner with CrawlDBReader (jnioche)
+* NUTCH-1294 IndexClean job with solr implementation. (Dan Rosher, lewismc, Claudiu Chis via feng)
+
+* NUTCH-911 protocol-file to return proper protocol status (Peter Lundberg via snagel)
 
 * NUTCH-1587 misspelled property "threshold" in conf/log4j.properties (snagel)
 
@@ -1171,60 +394,53 @@ Release Report - http://s.apache.org/oHY
 
 * NUTCH-1595 Upgrade to Tika 1.4 (jnioche, markus)
 
-* NUTCH-1598 ElasticSearchIndexer to read ImmutableSettings from config (markus)
+* NUTCH-1594 count variable is never changed in ParseUtil class (Canan via Feng)
 
-* NUTCH-1520 SegmentMerger looses records (markus)
+Release 2.2.1 - 06/27/2013 (mm/dd/yyyy)
+Release Report - http://s.apache.org/PGa
 
-* NUTCH-1602 improve the readability of metadata in readdb dump normal (lufeng)
+* NUTCH-1591 Incorrect conversion of ByteBuffer to String (Jason Howes via lewismc)
 
-* NUTCH-1596 HeadingsParseFilter not thread safe (snagel via markus)
-
-* NUTCH-1597 HeadingsParseFilter to trim and remove exess whitespace (markus)
-
-* NUTCH-1601 ElasticSearchIndexer fails to properly delete documents (markus)
-
-* NUTCH-1600 Injector overwrite does not always work properly (markus)
-
-* NUTCH-1581 CrawlDB csv output to include metadata (markus)
-
-* NUTCH-1327 QueryStringNormalizer (markus)
-
-* NUTCH-1593 Normalize option missing in SegmentMerger's usage (markus)
-
-* NUTCH-1580 index-static returns object instead of value for index.static (Antoinette, lewismc, snagel)
+* NUTCH-1571 SolrInputSplit doesn't implement Writable and crawl script doesn't pass crawlId to generate and updatedb tasks (yuanyun.cn via lewismc)
 
 * NUTCH-1126 JUnit test for urlfilter-prefix (Talat UYARER via markus)
 
-Apache Nutch 1.7 Release - 06/20/2013 (mm/dd/yyyy)
-Release report - http://s.apache.org/1zE
-
-* NUTCH-1585 Ensure duplicate tags do not exist in microformat-reltag tag set. (lewismc)
-
-* NUTCH-1583 Headings plugin to support multivalued headings (markus)
-
-* NUTCH-1245 URL gone with 404 after db.fetch.interval.max stays db_unfetched in CrawlDb (snagel)
-
-* NUTCH-1527 Elasticsearch indexer (lufeng + markus)
+* NUTCH-1585 Ensure duplicate tags do not exist in microformat-reltag tag set (lewismc)
 
 * NUTCH-1475 Index-More Plugin -- A better fall back value for date field (James Sullivan, snagel via lewismc)
 
-* NUTCH-1560 index-metadata to add all values of multivalued metadata (snagel)
-
-* NUTCH-1467 Not able to parse mutliValued metatags (kiran via snagel)
-
-* NUTCH-1430 Freegenerator records overwrite CrawlDB records with AdaptiveFetchSchedule (markus)
-
-* NUTCH-1522 Upgrade to Tika 1.3 (jnioche)
+* NUTCH-1420 Get rid of the dreaded � (markus + lewismc)
 
 * NUTCH-1578 Upgrade to Hadoop 1.2.0 (markus)
 
-* NUTCH-1577 Add target for creating eclipse project (tejasp)
+* NUTCH-1522 Upgrade to Tika 1.3 (jnioche)
 
-* NUTCH-1513 Support Robots.txt for Ftp urls (tejasp)
+Release 2.2 - 05/31/2013 (mm/dd/yyyy)
+Jira Release Report - http://s.apache.org/LPB
+
+* NUTCH-1576 Need to keep hotStore.flush() exception catching (James Sullivan via lewismc)
+
+* NUTCH-1577 Add target for creating eclipse project (tejasp via lewismc)
+
+* NUTCH-1545 capture batchId and remove references to segments in 2.x crawl script. (Feng)
+
+* NUTCH-1575 support solr authentication in nutch 2.x (Feng)
+
+* NUTCH-1569 Upgrade 2.x to Gora 0.3 (lewismc)
+
+* NUTCH-1243 Junit jar removed from lib (lewismc)
 
 * NUTCH-1249 and NUTCH-1275 : Resolve all issues flagged up by adding javac -Xlint argument (tejasp)
 
+* NUTCH-1513 Support Robots.txt for Ftp urls (tejasp)
+
 * NUTCH-1053 Parsing of RSS feeds fails (tejasp)
+
+* NUTCH-1563 FetchSchedule#getFields is never used by GeneratorJob (Feng)
+
+* NUTCH-1573 Upgrade to most recent JUnit 4.x to improve test flexibility (lewismc)
+
+* Added crawler-commons dependency in pom.xml (tejasp)
 
 * NUTCH-956 solrindex issues: add field tld to Solr schema (Alexis via lewismc, snagel)
 
@@ -1232,67 +448,66 @@ Release report - http://s.apache.org/1zE
 
 * NUTCH-1514 Phase out the deprecated configuration properties (if possible) (tejasp)
 
-* NUTCH-1334 NPE in FetcherOutputFormat (jnioche via tejasp)
+* NUTCH-1273 Fix [deprecation] javac warnings (lewsimc + tejasp)
 
-* NUTCH-1549 Fix deprecated use of Tika MimeType API in o.a.n.util.MimeUtil (tejasp)
+* NUTCH-1031 Delegate parsing of robots.txt to crawler-commons (tejasp)
 
 * NUTCH-346 Improve readability of logs/hadoop.log (Renaud Richardet via tejasp)
 
-* NUTCH-829 duplicate hadoop temp files (Mike Baranczak, lewismc, tejasp)
-
 * NUTCH-1501 Harmonize behavior of parsechecker and indexchecker (snagel + lewismc)
 
-* NUTCH-1031 Delegate parsing of robots.txt to crawler-commons (tejasp)
+* NUTCH-1551 Improve WebTableReader field order and display batchId (lewismc)
+
+* NUTCH-1552 possibility of a NPE in index-more plugin (kaveh minooie via lewismc)
 
 * NUTCH-1547 BasicIndexingFilter - Problem to index full title (Feng)
 
 * NUTCH-1389 parsechecker and indexchecker to report truncated content (snagel)
 
-* NUTCH-1419 parsechecker and indexchecker to report protocol status (snagel + lewismc)
+* NUTCH-1419 parsechecker and indexchecker to report protocol status (snagel via lewismc)
 
-* NUTCH-1047 Pluggable indexing backends (jnioche)
+* NUTCH-1038 Port IndexingFiltersChecker to 2.0 (snagel via lewismc)
+
+* NUTCH-1532 Replace 'segment' mapping field with batchId (patches v2 + v3) (Feng +via lewismc)
+
+* NUTCH-1533 Implement getPrevModifiedTime(), setPrevModifiedTime(), getBatchId() and setBatchId() accessors in o.a.n.storage.WebPage (Feng via lewismc)
+
+* NUTCH-XX fix Elastic Search Ivy configuration (Binoy d via lewismc) 
+
+* NUTCH-1542 "adddays" param for generator not present in 2.x (tejasp)
+
+* NUTCH-1393 Display consistent usage of GeneratorJob with 1.X (Lufeng +via lewismc)
+
+* NUTCH-1540 Add Gora buffered read and write maximum limits to nutch-default.xml configuration. (lewismc)
+
+* NUTCH-842 AutoGenerate WebPage code (jnioche via lewismc)
 
 * NUTCH-1536 Ant build file has hardcoded conf dir location (zm via lewismc)
 
-* NUTCH-1420 Get rid of the dreaded � (markus via lewismc)
-
-* NUTCH-1521 CrawlDbFilter pass null url to urlNormalizers (Lufeng via lewismc)
+* NUTCH-XX remove unused db.max.inlinks property in nutch-default.xml (lewismc)
 
 * NUTCH-1284 Add site fetcher.max.crawl.delay as log output by default (tejasp)
 
 * NUTCH-1453 Substantiate tests for IndexingFilters (lufeng via lewismc)
 
-* NUTCH-840  Port tests from parse-html to parse-tika (lewismc, jnioche)
-
-* NUTCH-1509 Implement read/write in NutchField (markus)
-
-* NUTCH-1507 Remove FetcherOutput (markus)
-
-* NUTCH-1506 Add UPDATE action to NutchIndexAction (markus)
-
-* NUTCH-1500 bin/crawl fails on step solrindex with wrong path to segment (Tristan Buckner, snagel)
-
 * NUTCH-1274 Fix [cast] javac warnings (tejasp via lewismc)
 
-* NUTCH-1494 RSS feed plugin seems broken (Sourajit Basak, tejasp and lewismc)
-
-* NUTCH-1127 JUnit test for urlfilter-validator (tejasp via lewismc)
-
-* NUTCH-1119 JUnit test for index-static (tejasp via lewismc)
+* NUTCH-1516 Nutch 2.x pom.xml out of sync with ivy.xml (lewismc)
 
 * NUTCH-1510 Upgrade to Hadoop 1.1.1 (markus)
 
-* NUTCH-1118 JUnit test for index-basic (tejasp via lewismc)
+* NUTCH-1503 Configuration properties not in sync between FetcherReducer and nutch-default.xml (snagel + lewismc)
 
-* NUTCH-1331 limit crawler to defined depth (jnioche)
+* NUTCH-1394 backport NUTCH-1232 Remove site field from index-basic (lewismc)
 
-Release 1.6 - 23/11/2012
+* NUTCH-1370 Expose exact number of urls injected @runtime (ferdy, snagel and lewismc)
+   (includes commit for NUTCH-1471 make explicit which datastore urls are injected to)
 
-* NUTCH-1370 Expose exact number of urls injected @runtime (snagel via lewismc)
-
-* NUTCH-1117 JUnit test for index-anchor (lewismc)
+* NUTCH-1484 TableUtil unreverseURL fails on file:// URLs (Rogério Pereira Araújo via snagel)
 
 * NUTCH-1451 Upgrade automaton jar to 1.11-8 (lewismc)
+
+* NUTCH-1496 ParserJob logs skipped urls with level info (Nathan Gass via lewismc)
 
 * NUTCH-1488 bin/nutch to run junit from any directory (snagel via lewismc)
 
@@ -1302,348 +517,264 @@ Release 1.6 - 23/11/2012
 
 * NUTCH-1421 RegexURLNormalizer to only skip rules with invalid patterns (snagel)
 
-* NUTCH-1341 NotModified time set to now but page not modified (markus)
+* NUTCH-1433 Upgrade to Tika 1.2 (jnioche)
 
-* NUTCH-1215 UpdateDB should not require segment as input (markus)
+* NUTCH-1087 Deprecate crawl command and replace with example script (jnioche)
 
-* NUTCH-1383 IndexingFiltersChecker to show error message instead of null pointer exception (snagel)
-
-* NUTCH-1476 SegmentReader getStats should set parsed = -1 if no parsing took place (snagel)
-
-* NUTCH-1252 SegmentReader -get shows wrong data (snagel)
+* NUTCH-874 Make sure all plugins in src/plugin are compatible with Nutch 2.0 and Gora (part 1) (Kiran Chitturi via lewismc)
 
 * NUTCH-1344 BasicURLNormalizer to normalize https same as http (snagel)
 
 * NUTCH-706 Url regex normalizer: pattern for session id removal not to match "newsId" (Meghna Kukreja via snagel)
 
+Release 2.1 (19/09/2012) ddmmyyyy
+Full Jira Report - https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=10680&version=12321040
+
 * NUTCH-1415 release packages to contain top level folder apache-nutch-x.x (snagel)
 
-* NUTCH-1441 AnchorIndexingFilter should use plain HashSet (ferdy via lewismc)
+* NUTCH-1432 property storage.schema does not work anymore, should be storage.schema.webpage and storage.schema.host (lewismc)
+
+* NUTCH-1468 Redirects that are external links not adhering to db.ignore.external.links (Matt MacDonald via ferdy)
 
 * NUTCH-1470 Ensure test files are included for runtime testing (lewismc)
 
-* NUTCH-1434 Indexer to delete robots noindex (markus)
+* NUTCH-1162 Write JUnit tests for parse-js (lewismc)
+
+* NUTCH-1161 Write JUnit tests for microformats-reltag plugin (lewismc)
+
+* NUTCH-1160 Write JUnit tests for index-basic (lewismc)
+
+* NUTCH-1456 Updater not setting batchId in markers correctly. (Alexander Kingson via ferdy)
+
+* NUTCH-1459 Remove dead code (phase2) from InjectorJob (ferdy)
+
+* NUTCH-1431 Introduce link 'distance' and add configurable max distance in the generator (ferdy)
+
+* NUTCH-1448 Redirected urls should be handled more cleanly (more like an outlink url) (ferdy)
+
+* NUTCH-1463 Elasticsearch indexer should wait and check response for last flush (ferdy)
+
+* NUTCH-1462 Elasticsearch not indexing when type==null in NutchDocument metadata (ferdy)
+
+* NUTCH-1395 Show batchId when skipping within ParserJob (lewismc)
+
+* NUTCH-1365 Fix crawlId functionalilty by making using of new gora configuration (ferdy)
+
+* NUTCH-1442 indexingfilter.order is property is misread in code (ferdy via lewismc)
+
+* NUTCH-1450 Upgrade to gora deps to 0.2.1 except gora-cassandra (lewismc)
+
+* NUTCH-1159 Write JUnit test for index-anchor (ferdy + lewismc)
+
+* NUTCH-1445 Add ElasticIndexerJob that indexes to elasticsearch (ferdy)
+
+* NUTCH-1444 Indexing should not create temporary files (do not extend from FileOutputFormat) (ferdy)
 
 * NUTCH-1443 Solr schema version is invalid (markus)
 
+* NUTCH-1441 AnchorIndexingFilter should use plain HashSet (ferdy)
+
 * NUTCH-1417 Remove o.a.n.metadata.Office (lewismc)
 
-* NUTCH-1376 Add description parameter to every ant task (lewismc)
+* NUTCH-1376 add ant description parameters (lewismc)
 
 * NUTCH-1440 reconfigure non-existent stopwords_en.txt in schema-solr4.xml (shekhar sharma via lewismc)
 
 * NUTCH-1439 Define boost field as type float in schema-solr4.xml (shekhar sharma via lewismc)
 
-* NUTCH-1433 Upgrade to Tika 1.2 (jnioche)
+* NUTCH-1438 ParserJob support for option -reparse (ferdy)
 
-* NUTCH-1388 Optionally maintain custom fetch interval despite AdaptiveFetchSchedule (markus)
+* NUTCH-1437 HostInjectorJob to accept lines with or without protocol (ferdy)
 
-* NUTCH-1430 Freegenerator records overwrite CrawlDB records with AdaptiveFetchSchedule (markus)
+* NUTCH-1435 Host jobs throw NullPointerException with MySQL (ferdy via lewismc)
 
-* NUTCH-1087 Deprecate crawl command and replace with example script (jnioche)
+* NUTCH-1428 GeneratorMapper should not initialize filters/normalizers when they are disabled (ferdy)
+
+* NUTCH-1427 Reuse SelectorEntry in Generator. (ferdy)
+
+* NUTCH-1411 nutchgora fetcher.store.content does not work (Alexander Kingson via ferdy) 
+
+* NUTCH-1426 HostDb close() should close store instead of flush (ferdy)
+
+* NUTCH-1425 DbUpdaterJob declares PREV_SIGNATURE on input twice (ferdy)
+
+* NUTCH-1424 fix fetcher timelimit logging (ferdy)
+
+* NUTCH-1423 Remove unused fields in LanguageIndexingFilter (ferdy)
 
 * NUTCH-1306 Add option to not commit and clarify existing solr.commit.size (ferdy)
 
-* NUTCH-1405 Allow to overwrite CrawlDatum's with injected entries (markus)
+Release 2.0 (08/06/2012) ddmmyyy
+Full Jira report - https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=10680&version=12314893
 
-* NUTCH-1412 Upgrade commons lang (markus)
-
-* NUTCH-1251 SolrDedup to use proper Lucene catch-all query (Arkadi Kosmynin via markus)
-
-* NUTCH-1407 BasicIndexingFilter to optionally add domain field (markus)
-
-* NUTCH-1408 RobotRulesParser main doesn't take URL's (markus)
-
-* NUTCH-1300 Indexer to filter normalize URL's (markus)
-
-* NUTCH-1330 WebGraph OutlinkDB to preserve back up (markus)
-
-* NUTCH-1319 HostNormalizer plugin (markus)
-
-* NUTCH-1386 Headings filter not to add empty values (markus)
-
-* NUTCH-1356 ParseUtil use ExecutorService instead of manually thread handling (ferdy via markus)
-
-* NUTCH-1352 Improve regex urlfilters/normalizers synchronization (ferdy via markus)
-
-* NUTCH-1024 Dynamically set fetchInterval by MIME-type (markus)
-
-* NUTCH-1364 Add a counter in Generator for malformed urls (lewismc)
-
-* NUTCH-1262 Map `duplicating` content-types to a single type (markus)
-
-* NUTCH-1385 More robust plug-in order properties in nutch-site.xml (Andy Xue via markus)
-
-* NUTCH-1336 Optionally not index db_notmodified pages (markus)
-
-* NUTCH-1346 Follow outlinks to ignore external (markus)
-
-* NUTCH-1320 IndexChecker and ParseChecker choke on IDN's (markus)
-
-* NUTCH-1351 DomainStatistics to aggregate by TLD (markus)
-
-* NUTCH-1381 Allow to override default subcollection field name (markus)
-
-* NUTCH-XX Commit to add configuration for separation of ant distribution targets (lewismc + jnioche)
-
-Release 1.5.1 - 07/10/2012
-
-* NUTCH-1404 Nutch script fails to find job file in deploy mode (sidabatra, jnioche)
-
-* NUTCH-1415 release packages to contain top level folder apache-nutch-x.x (snagel via lewismc)
+* NUTCH-1391 readdb -stats fires java.io.EOFException (jnioche)
 
 * NUTCH-1400 Remove developer -core option for bin/nutch (jnioche)
 
-* NUTCH-1384 Typo in ParseSegment's run-method (Matthias Agethle via markus)
+* NUTCH-1399 TestProtocolHttpClient fails (jnioche)
 
-* NUTCH-1398 Upgrade to Hadoop 1.0.3 (jnioche)
+* NUTCH-1404 Nutch script fails to find job file in deploy mode (sidabatra, jnioche)
 
-Release 1.5 - 04/15/2012
+* NUTCH-1401 Upgrade to Hadoop 1.0.3  (jnioche)
 
-* NUTCH-1208 Don't include KEYS file in bin distribution (jnioche)
+* NUTCH-1396 Upgrade Tika 1.1 (jnioche)
 
-* NUTCH-1234 Upgrade to Tika 1.1 (jnioche, markus)
+* NUTCH-1392 -force and -resume arguments being ignored in ParserJob (ferdy via lewismc)
 
-* NUTCH-809 Parse-metatags plugin (jnioche)
+* NUTCH-1379 NPE when reprUrl is null in ParseUtil (ferdy)
 
-* NUTCH-1310 Nutch to send HTTP-accept header (markus)
+* NUTCH-1378 HostDb NullPointerException (ferdy)
 
-* NUTCH-1305 Domain(blacklist)URLFilter to trim entries (markus)
+* NUTCH-XX Commit to add configuration for separation of ant distribution targets (lewismc + jnioche)
+
+* NUTCH-1364 Add a counter for malformed urls (Jason Trost via lewismc)
+
+* NUTCH-1361 Fix mishandling of malformed urls in generator job (Jason Trost via lewismc)
+
+* NUTCH-1366 speed up indexing by eliminating the indexreducer (ferdy)
+
+* NUTCH-1362 Fix error handling of urls with empty fields (lewis, ferdy)
+
+* NUTCH-1026 Strip UTF-8 non-character codepoints (markus, ferdy)
+
+* NUTCH-1358 Do not accept bogus arguments (ferdy)
+
+* NUTCH-1349 Make batchId explcit within debug logging and improve CLI (lewismc + ferdy)
+
+* NUTCH-1352 Improve regex urlfilters/normalizers synchronization (ferdy)
+
+* NUTCH-1356 ParseUtil use ExecutorService instead of manually thread handling. (ferdy)
+
+* NUTCH-1355 nutchgora Configure minimum throughput for fetcher (ferdy)
+
+* NUTCH-1354 nutchgora support fetcher.queue.depth.multiplier property (ferdy)
+
+* NUTCH-1353 nutchgora DomainStatistics support crawlId, counter bug and reformatting (ferdy)
+
+* NUTCH-1350 remove unused dependancy because of access restriction (ferdy)
+
+* NUTCH-1205 Upgrade gora modules to 0.2 in ivy/ivy.xml (lewismc, ferdy)
+
+* NUTCH-882 Design a Host table in GORA (jnioche, ab, dogacan, Mathijs Homminga, ferdy)
+
+* NUTCH-1340 Increase scalability by only removing markers when they actually exist for DbUpdaterReducer (ferdy)
+
+* NUTCH-1333 Introduce AvroStore, DataFileAvroStore and Accumulo Datastore implementations (lewismc)
+
+* NUTCH-1312 Nutchgora to send HTTP-accept header (ferdy)
+
+* NUTCH-1311 Add response headers to datastore for the protocol-httpclient plugin (Dan Rosher via ferdy)
+
+* NUTCH-1304 GeneratorMapper.java dosen't return when skipping and already generated mark (Dan Rosher via lewismc)
 
 * NUTCH-1307 Improve formatting of ant targets for clearer project help (lewismc)
 
-* NUTCH-1299 LinkRank inverter to ignore records without Node (markus)
+* NUTCH-1302 nutchgora job failures should be noticed by submitter (ferdy)
 
-* NUTCH-1258 MoreIndexingFilter should be able to read Content-Type from both parse metadata and content metadata (jnioche, markus)
+* NUTCH-1298 Pass numTasks to FetcherJob (Dan Rosher via ferdy)
 
-* NUTCH-1293 IndexingFiltersChecker to store detected content type in crawldatum metadata (markus)
+* NUTCH-1289 In distributed mode URL's are not partitioned (Dan Rosher, ferdy)
 
-* NUTCH-1291 Fetcher to stringify exception on // unexpected exception (markus)
+* NUTCH-1292 Better exception logging and debugging during fetch. (ferdy)
+
+* NUTCH-1263 FetcherJob must put 'fetchTime' on input (ferdy)
+
+* NUTCH-1296 nutchgora fetcher does not show correct 'threads' and 'resuming' properties (ferdy)
+
+* NUTCH-1295 nutchgora restlet dependencies failing when remote repos is down (ferdy)
 
 * NUTCH-965 Skip parsing for truncated documents (alexis, lewismc, ferdy)
 
-* NUTCH-1210 DomainBlacklistFilter (markus)
+* NUTCH-1287 Upgrade to hsqldb 2.2.8 (ferdy)
 
-* NUTCH-1193 Incorrect url transform to lowercase: parameter solr (Eduardo dos Santos Leggiero via lewismc)
+* NUTCH-1280 language-identifier should have option to use detected value by Tika even when uncertain (ferdy)
 
-* NUTCH-1272 Wrong property name for index-static in nutch-default.xml (Daniel Baur via jnioche)
+* NUTCH-1246 Upgrade to Hadoop 1.0.0 (lewismc)
 
-* NUTCH-1259 Store detected content-type in crawldatum metadata (jnioche, markus)
-
-* NUTCH-1266 Subcollection to optionally write to configured fields (markus)
-
-* NUTCH-1005 Parse headings plugin (markus)
-
-* NUTCH-1264 Configurable indexing plugin index-metadata (jnioche)
-
-* NUTCH-1242 Allow disabling of URL Filters in ParseSegment (Edward Drapkin via markus)
-
-* NUTCH-1256 WebGraph to dump host + score (markus)
-
-* NUTCH-1260 Fetcher should log fetching of redirects (Sebastian Nagel via markus)
+* NUTCH-1279 Check if limit has been reached in GeneraterReducer must be the first check performance-wise. (ferdy)
 
 * NUTCH-1255 Change ivy.xml of all plugins to remove "nutch.root" property (ferdy)
 
-* NUTCH-1248 Generator to select on status (markus)
+* NUTCH-1189 add commented out default settings to gora.properties file (lewismc, Ferdy)
 
-* NUTCH-1177 Generator to select on retry interval (markus)
+* NUTCH-1138 remove LogUtil from trunk and nutchgora (lewismc)
 
-* NUTCH-1246 Upgrade to Hadoop 1.0.0 (jnioche)
-
-* NUTCH-1139 Indexer to delete gone documents (markus)
-
-* NUTCH-1244 CrawlDBDumper to filter by regex (markus)
-
-* NUTCH-1237 Improve javac arguements for more verbose ouput (lewismc)
-
-* NUTCH-1236 Add link to site documentation to download older versions of Nutch (lewismc)
-
-* NUTCH-1146 Prevent generation of _SUCCESS files in output (jnioche)
-
-* NUTCH-1232 Remove site field from index-basic (markus)
-
-* NUTCH-1239 Webgraph should remove deleted pages from segment input (markus)
-
-* NUTCH-1238 Fetcher throughput threshold must start before feeder finished (markus)
-
-* NUTCH-1138 remove LogUtil from trunk and nutch gora (lewismc)
-
-* NUTCH-1231 Upgrade to Tika 1.0 (markus)
-
-* NUTCH-1230 MimeType API deprecated and breaks with Tika 1.0 (markus)
-
-* NUTCH-1235 Upgrade to new Hadoop 0.20.205.0 (markus)
+* NUTCH-1237 Improve javac arguements for more verbose output (lewismc)
 
 * NUTCH-1217 Update NOTICE.txt to drop some copyrights (lewismc)
 
-* NUTCH-1129 Add freegenerator, domainstats and crawldbscanner to log4j (markus)
-
-* NUTCH-1184 Fetcher to parse and follow Nth degree outlinks (markus)
-
-* NUTCH-1221 Migrate DomainStatistics to MapReduce API (markus)
-
 * NUTCH-1216 Add trivial comment to lib/native/README.txt (lewismc)
 
-* NUTCH-1214 DomainStats tool should be named for what it's doing (markus)
+* NUTCH-1198 Less verbose logging when unmapped mimetypes are trying to be parsed. (ferdy)
 
-* NUTCH-1213 Pass additional SolrParams when indexing to Solr (ab)
-
-* NUTCH-1211 URLFilterChecker command line help doesn't inform user of 
-  STDIN requirements (mattmann)
-
-* NUTCH-1209 Output from ParserChecker Url missing a newline (mattmann)
-
-* NUTCH-1207 ParserChecker to output signature (markus)
-
-* NUTCH-1090 InvertLinks should inform when ignoring internal links (Marek Backmann via markus)
-
-* NUTCH-1174 Outlinks are not properly normalized (markus)
-
-* NUTCH-1203 ParseSegment to show number of milliseconds per parse (markus)
+* NUTCH-1196 Update job should impose an upper limit on the number of inlinks (nutchgora) (ferdy)
 
 * NUTCH-1185 Decrease solr.commit.size to 250 (markus)
 
-* NUTCH-1180 UpdateDB to backup previous CrawlDB (markus)
-
-* NUTCH-1173 DomainStats doesn't count db_not_modified (markus)
-
-* NUTCH-1155 Host/domain limit in generator is generate.max.count+1 (markus)
-
-* NUTCH-1061 Migrate MoreIndexingFilter from Apache ORO to java.util.regex (markus)
-
-* NUTCH-1178 Incorrect CSV header CrawlDatumCsvOutputFormat (markus)
-
-* NUTCH-1142 Normalization and filtering in WebGraph (markus)
-
-* NUTCH-1153 LinkRank not to log all keys and not to write Hadoop _SUCCESS file (markus)
-
-Release 1.4 - 11/4/2011
-
-* NUTCH-1195 Add Solr 4x (trunk) example schema (ab)
+* NUTCH-1172 AbstractNuchTest should have a generic testdir instead of specific 'inject' dir (ferdy)
 
 * NUTCH-1192 Add '/runtime' to svn ignore (ferdy)
 
+* NUTCH-1191 Port NUTCH-1102 to nutchgora - consistent use of fetcher.parse (ferdy)
+
+* NUTCH-1187 Port NUTCH-1028 to nutchgora - log parser keys (ferdy)
+
+* NUTCH-902 Add all necessary files and configuration so that nutch can be used with different backends out-of-the-box (lewismc)
+
+* NUTCH-1081 & 1135 ant tests fail & Fix TestGoraStorage for Nutchgora (Ferdy via lewismc)
+
+* NUTCH-1156 building errors with gora-hbase as a backend; update ivy.xml to use correct dependancies (Ferdy via lewismc)
+
+* NUTCH-1109 Add Sonar targets to Ant build.xml (lewismc)
+
 * NUTCH-1097 application/xhtml+xml should be enabled in plugin.xml of parse-html; allow multiple mimetypes for plugin.xml (Ferdy via lewismc)
 
-* NUTCH-797 Fix parse-tika and parse-html to use relative URL resolution per RFC-3986
-  (Robert Hohman, ab)
+* Change plugin source directory "languageidentifier" to "language-identifier" (lewismc)
+
+* NUTCH-1132, 1133 & 1134 Fix TestGenerator, TestInjector & TestFetcher respectively (lewismc)
 
 * NUTCH-1154 Upgrade to Tika 0.10. NOTE: Tika's new RTF parser may ignore more
   text in malformed documents than previously - see TIKA-748 for details. (ab)
 
-* NUTCH-1109 Add Sonar targets to Ant build.xml (lewismc) 
-
 * NUTCH-1152 Upgrade SolrJ to version 3.4.0 (ab)
 
-* NUTCH-1136 Ant pmd target is broken (lewismc)
+* NUTCH-1136 Ant pmd target is broken
 
-* NUTCH-1058 Upgrade Solr schema to version 1.4 (markus)
-
-* NUTCH-1137 LinkDB invertlinks other options ignored when using -dir option (Sebastian Nagel, markus)
-
-* NUTCH-1141 Configurable Fetcher queue depth (jnioche)
-
-* NUTCH-1091 Remove commons logging dependency from Nutch branch and trunk (lewismc)
+* NUTCH-1058 Upgrade Solr schema version to 1.4 (markus)
 
 * NUTCH-672 allow unit tests to be run from bin/nutch (Todd Lipton via lewismc)
 
 * NUTCH-937 Put plugins in classes/plugins in job file (Claudio Martella, Ferdy Galema, jnioche)
 
-* NUTCH-623 Change plugin source directory "languageidentifier" to "language-identifier" (lewismc)
+* NUTCH-1131 Rely on published artefacts for GORA (jnioche)
 
-* NUTCH-1074 topN is ignored with maxNumSegments and generate.max.count (Robert Thomson via markus)
-
-* NUTCH-1078 Upgrade all instances of commons logging to slf4j (with log4j backend) (lewismc)
-
-* NUTCH-1115 Option to disable fixing embedded URL parameters in DomContentUtils (markus)
-
-* NUTCH-1114 Attr file missing in domain filter (markus)
-
-* NUTCH-1067 Configure minimum throughput for fetcher (markus)
-
-* NUTCH-1102 Fetcher to rely on fetcher.parse directive (markus)
-
-* NUTCH-1110 UpdateDB must not write _success file (markus)
-
-* NUTCH-1105 Max content length option for index-basic (markus)
-
-* NUTCH-940 static field plugin (Claudio Martella via lewismc)
-
-* NUTCH-914 Implement Apache Project Branding Requirements (lewismc)
-
-* NUTCH-1095 remove i18n from Nutch site to archive and legacy secton of wiki (lewismc)
-
-* NUTCH-1101 Option to purge db_gone records with updatedb (markus)
+* NUTCH-1099 Adds HBase and Cassandra storage properties to nutch-default.xml (lewismc)
 
 * NUTCH-1096 Empty (not null) ContentLength results in failure of fetch (Ferdy Galema via jnioche)
-
-* NUTCH-1073 Rename parameters 'fetcher.threads.per.host.by.ip' and 'fetcher.threads.per.host' (jnioche)
 
 * NUTCH-1089 Short compressed pages caused exception in protocol-httpclient (Simone Frenzel via jnioche)
 
 * NUTCH-1085 Nutch script does not require HADOOP_HOME (jnioche)
 
-* NUTCH-1075 Delegate language identification to Tika (jnioche)
-
-* NUTCH-1049 Add classes to bin/nutch script (markus)
-
-* NUTCH-1051 Export WebGraph node scores for Solr.ExternalFileField (markus)
-
 * NUTCH-1083 ParserChecker implements Tools (jnioche)
-
-* NUTCH-1082 IndexingFiltersChecker utility does not list multi valued fields (markus)
 
 * NUTCH-1004 Do not index empty values for title field (markus)
 
 * NUTCH-914 Implement Apache Project Branding Requirements (lewismc via jnioche)
 
-* NUTCH-1069 Readlinkdb broken on Hadoop > 0.20 (markus)
-
-* NUTCH-1044 Redirected URLs and possibly all of their outlinked URLs have invalid scores (jnioche)
-
-* NUTCH-1028 Log urls when parsing (markus)
-
 * NUTCH-1065 New mvn.template (lewismc)
-
-* NUTCH-1072 Display number and size of queues in Fetcher status (jnioche)
-
-* NUTCH-1071 Crawldb update displays total number of URLs per status (jnioche)
 
 * NUTCH-1045 MimeUtil to rely on default config provided by Tika (jnioche)
 
-* NUTCH-1057 Fetcher thread time out configurable (markus)
-
 * NUTCH-1037 Option to deduplicate anchors prior to indexing (markus)
-
-* NUTCH-1050 Add segmentDir option to WebGraph (markus)
 
 * NUTCH-1055 upgrade package.html file in language identifier plugin (lewismc)
 
-* NUTCH-1059 Remove convdb command from /bin/nutch (lewismc)
-
-* NUTCH-1019 Edit comment in org.apache.nutch.crawl.Crawl to reflect removal of legacy (lewismc)
-
-* NUTCH-1023 Trivial error in error message for org.apache.nutch.crawl.LinkDbReader (lewismc)
-
 * NUTCH-1043 Add pattern for filtering .js in default url filters (jnioche)
-
-* NUTCH-1054 LinkDB optional during indexing (jnioche)
-
-* NUTCH-1029 Readdb throws EOFException (markus)
-
-* NUTCH-1036 Solr jobs should increment counters in Reporter (markus)
-
-* NUTCH-987 Support HTTP auth for Solr communication (markus)
 
 * NUTCH-1027 Degrade log level of `can't find rules for scope` (markus)
 
-* NUTCH-783 IndexingFiltersChecker utility (jnioche via markus)
-
-* NUTCH-1030 WebgraphDB program requires manually added directories (markus)
-
 * NUTCH-1011 Normalize duplicate slashes in URL's (markus)
-
-* NUTCH-993 NullPointerException at FetcherOutputFormat.checkOutputSpecs (Christian Guegi via jnioche)
 
 * NUTCH-1013 Migrate RegexURLNormalizer from Apache ORO to java.util.regex (markus)
 
@@ -1651,17 +782,11 @@ Release 1.4 - 11/4/2011
 
 * NUTCH-1012 Cannot handle illegal charset $charset (markus)
 
-* NUTCH-1022 Upgrade version number of Nutch agent in conf (markus)
-
 * NUTCH-295 Description for fetcher.threads.fetch property (kubes via markus)
-
-* NUTCH-1000 Add option not to commit to Solr (markus)
 
 * NUTCH-1006 MetaEquiv with single quotes not accepted (markus)
 
 * NUTCH-1010 ContentLength not trimmed (markus)
-
-Release 1.3 - 6/4/2011
 
 * NUTCH-995 Generate POM file using the Ivy makepom task (mattmann, jnioche, Gabriele Kahlout)
 
@@ -1669,7 +794,7 @@ Release 1.3 - 6/4/2011
 
 * NUTCH-994 Fine tune Solr schema (markus)
 
-* NUTCH-997 IndexingFitlers to store Date objects instead of Strings (jnioche)
+* NUTCH-999 Normalise String representation for Dates in IndexingFilters (jnioche)
 
 * NUTCH-996 Indexer adds solr.commit.size+1 docs (markus)
 
@@ -1687,37 +812,27 @@ Release 1.3 - 6/4/2011
 
 * NUTCH-976 Rename properties solrindex.* to solr.* (markus)
 
-* NUTCH-890 Fix IllegalAccessError with slf4j used in Solrj (markus)
+* NUTCH-975 Fix missing/wrong headers in source files (markus, jnioche)
+
+* NUTCH-980 Fix IllegalAccessError with slf4j used in Solrj (markus)
+
+* NUTCH-982 Remove copying of ID and URL field in solrmapping (markus)
 
 * NUTCH-891 Subcollection plugin won't require blacklist any more (markus)
 
-* NUTCH-972 CrawlDbMerger doesn't break on non-existent input (Gabriele Kahlout via jnioche)
-
 * NUTCH-967 Upgrade to Tika 0.9 (jnioche)
 
-* NUTCH-975 Fix missing/wrong headers in source files (markus)
-
-* NUTCH-963 Add support for deleting Solr documents with STATUS_DB_GONE in CrawlDB (Claudio Martella, markus)
-
-* NUTCH-825 Publish nutch artifacts to central maven repository (mattmann, jnioche)
+* NUTCH-955 Ivy configuration improvements. Upgrade to Xerces 2.9.1 and Restlet 2.0.5 (alexis via ab)
 
 * NUTCH-962 max. redirects not handled correctly: fetcher stops at max-1 redirects (Sebastian Nagel via ab)
 
-* NUTCH-921 Reduce dependency of Nutch on config files (ab)
-
-* NUTCH-876 Remove remaining robots/IP blocking code in lib-http (ab)
-
-* NUTCH-872 Change the default fetcher.parse to FALSE (ab)
-
-* NUTCH-564 External parser supports encoding attribute (Antony Bowesman, mattmann)
-
-* NUTCH-964 Upgraded Xerces to 2.91, ERROR conf.Configuration - Failed to set setXIncludeAware (markus)
-
-* NUTCH-927 Fetcher.timelimit.mins is invalid when depth is greater than 1 (Wade Lau via jnioche)
+* NUTCH-964 Upgraded Xerces to 2.91 (markus)
 
 * NUTCH-824 Crawling - File Error 404 when fetching file with an hexadecimal character in the file name (Michela Becchi via jnioche)
 
 * NUTCH-954 Strict application of Content-Length limit for http protocols (Alexis Detreglode via jnioche)
+
+* NUTCH-953 Fixed crawl command in Nutch script (Alexis Detreglode via jnioche)
 
 * NUTCH-950 DomainURLFilter throws NPE on bogus urls (Alexis Detreglode via jnioche)
 
@@ -1725,21 +840,65 @@ Release 1.3 - 6/4/2011
 
 * NUTCH-912 MoreIndexingFilter does not parse docx and xlsx date formats (Markus Jelsma, jnioche)
 
-* NUTCH-886 A .gitignore file for Nutch (dogacan)
-
-* NUTCH-930 Remove remaining dependencies on Lucene API (ab)
-
-* NUTCH-883 Remove unused parameters from nutch-default.xml (jnioche) 
-
 * NUTCH-936 LanguageIdentifier should not set empty lang field on NutchDocument (Markus Jelsma via jnioche)
-
-* NUTCH-787 ScoringFilters should not override the injected score (jnioche)
 
 * NUTCH-949 Conflicting ANT jars in classpath (jnioche)
 
-* NUTCH-863 Benchmark and a testbed proxy server (ab)
+* NUTCH-825 Publish nutch artifacts to central maven repository (mattmann)
+
+* NUTCH-913 Nutch should use new namespace for Gora (dogacan)
+
+* NUTCH-714 Need a SFTP and SCP Protocol Handler (Sanjoy Ghosh, mattmann)
+
+* NUTCH-894 Move statistical language identification from indexing to parsing step
+  (Sertan Alkan via dogacan)
+
+* NUTCH-901 Make index-more plug-in configurable (Markus Jelsma via mattmann)
+
+* NUTCH-862 HttpClient null pointer exception (Sebastian Nagel via ab)
+
+* NUTCH-904 "-resume" option is always processed as "false" in FetcherJob
+  (Faruk Berksöz via dogacan)
+
+* NUTCH-905 Configurable file protocol parent directory crawling (Thorsten Scherler, mattmann, ab)
+
+* NUTCH-716 Make subcollection index filed multivalued (Dmitry Lihachev via jnioche)
+
+* NUTCH-884 FetcherJob should run more reduce tasks than default (ab)
+
+* NUTCH-883 Remove unused parameters from nutch-default.xml (jnioche)
+
+* NUTCH-886 A .gitignore file for Nutch (dogacan)
+
+* NUTCH-872 Change the default fetcher.parse to FALSE (ab).
+
+* NUTCH-861 Renamed HTMLParseFilter into ParseFilter 
+
+* NUTCH-876 Remove remaining robots/IP blocking code in lib-http (ab)
+
+* NUTCH-851 Port logging to slf4j (jnioche)
+
+* NUTCH-564 External parser supports encoding attribute (Antony Bowesman, mattmann)
+
+* NUTCH-873 Ivy configuration settings don't include Gora (mattmann)
+
+* NUTCH-870 Injector should add the metadata before calling injectedScore (jnioche via mattmann)
+
+* NUTCH-867 Port Nutch benchmark to Nutchbase (ab)
+
+* NUTCH-869 Add parse-html back (jnioche)
+
+* NUTCH-871 MoreIndexingFilter missing date format (Max	Lynch via mattmann)
+
+* NUTCH-696 Timeout for Parser (ab, jnioche)
+
+* NUTCH-774 Retry interval in crawl date is set to 0 (Reinhard Schwab via mattmann)
+
+* NUTCH-697 Generate log output for solr indexer and dedup (Dmitry Lihachev, Jeroen van Vianen via mattmann)
 
 * NUTCH-844 Improve NutchConfiguration (ab)
+
+* NUTCH-850 SolrDeleteDuplicates needs to clone the SolrRecord objects (jnioche)
 
 * NUTCH-845 Native hadoop libs not available through maven (ab)
 
@@ -1747,67 +906,32 @@ Release 1.3 - 6/4/2011
 
 * NUTCH-821 Use ivy in nutch builds (Enis Soztutar, jnioche)
 
+* NUTCH-838 Add timing information to all Tool classes (Jeroen van Vianen, mattmann)
+
 * NUTCH-837 Remove search servers and Lucene dependencies (ab)
 
 * NUTCH-836 Remove deprecated parse plugins (jnioche)
 
-* NUTCH-939 Added -dir command line option to SolrIndexer (Claudio Martella via ab)
-
-* NUTCH-948 Remove Lucene dependencies (ab)
-
-Release 1.2 - 09/18/2010
-
-* NUTCH-901 Make index-more plug-in configurable (Markus Jelsma via mattmann)
-
-* NUTCH-908 Infinite Loop and Null Pointer Bugs in Searching (kubes via mattmann)
-
-* NUTCH-906 Nutch OpenSearch sometimes raises DOMExceptions (Asheesh Laroia via ab)
-
-* NUTCH-862 HttpClient null pointer exception (Sebastian Nagel via ab)
-
-* NUTCH-905 Configurable file protocol parent directory crawling (Thorsten Scherler, mattmann, ab)
-
-* NUTCH-877 Allow setting of slop values for non-quote phrase queries on query-basic plugin (kubes via jnioche)
-
-* NUTCH-716 Make subcollection index filed multivalued (Dmitry Lihachev via jnioche)
-
-* NUTCH-878 ScoringFilters should not override the injected score 
-
-* NUTCH-870 Injector should add the metadata before calling injectedScore (jnioche via mattmann)
-
-* NUTCH-858 No longer able to set per-field boosts on lucene documents (ab)
-
-* NUTCH-869 Add parse-html back (jnioche)
-
-* NUTCH-871 MoreIndexingFilter missing date format (Max Lynch via mattmann)
-
-* NUTCH-696 Timeout for Parser (ab, jnioche)
-
-* NUTCH-857 DistributedBeans should not close their RPC counterparts (kubes)
-  
-* NUTCH-855 ScoringFilter and IndexingFilter: To allow for the propagation of URL Metatags 
-  and their subsequent indexing (Scott Gonyea via mattmann)
-
-* NUTCH-677 Segment merge filering based on segment content (Marcin Okraszewski via mattmann)
-
-* NUTCH-774 Retry interval in crawl date is set to 0 (Reinhard Schwab via mattmann)
-
-* NUTCH-697 Generate log output for solr indexer and dedup (Dmitry Lihachev, Jeroen van Vianen via mattmann)
-
-* NUTCH-850 SolrDeleteDuplicates needs to clone the SolrRecord objects (jnioche)
-
-* NUTCH-838 Add timing information to all Tool classes (Jeroen van Vianen, mattmann)
-
 * NUTCH-835 Document deduplication failed using MD5Signature (Sebastian Nagel via ab)
-
-* NUTCH-831 Allow configuration of how fields crawled by Nutch are stored / indexed / 
-  tokenized (Jeroen van Vianen via mattmann)
 
 * NUTCH-278 Fetcher-status might need clarification: kbit/s instead of kb/s shown (Alex McLintock via mattmann)
 
 * NUTCH-833 Website is still Lucene branded (mattmann, Alex McLintock)
 
 * NUTCH-832 Website menu has lots of broken links - in particular the API docs (Alex McLintock via mattmann)
+
+* NUTCH-921 Reduce dependency of Nutch on config files (ab)
+
+* NUTCH-907 DataStore API doesn't support multiple storage areas for multiple disjoint crawls (Sertan Alkan via ab)
+
+* NUTCH-880 REST API for Nutch (ab)
+
+* NUTCH-930 Remove remaining dependencies on Lucene API (ab)
+
+* NUTCH-931 Simple admin API to fetch status and stop the service (ab)
+
+* NUTCH-932 Bulk REST API to retrieve crawl results as JSON (ab)
+
 
 Release 1.1 - 2010-06-06
 

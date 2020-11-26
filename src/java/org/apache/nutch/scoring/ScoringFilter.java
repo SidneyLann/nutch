@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -18,17 +18,11 @@ package org.apache.nutch.scoring;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configurable;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
 import org.apache.nutch.indexer.NutchDocument;
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.plugin.Pluggable;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.plugin.FieldPluggable;
+import org.apache.nutch.storage.WebPage;
 
 /**
  * A contract defining behavior of scoring plugins.
@@ -39,7 +33,7 @@ import org.apache.nutch.protocol.Content;
  * 
  * @author Andrzej Bialecki
  */
-public interface ScoringFilter extends Configurable, Pluggable {
+public interface ScoringFilter extends Configurable, FieldPluggable {
   /** The name of the extension point. */
   public final static String X_POINT_ID = ScoringFilter.class.getName();
 
@@ -50,11 +44,11 @@ public interface ScoringFilter extends Configurable, Pluggable {
    * 
    * @param url
    *          url of the page
-   * @param datum
-   *          new datum. Filters will modify it in-place.
+   * @param page
+   *          new page. Filters will modify it in-place.
    * @throws ScoringFilterException
    */
-  public void injectedScore(Text url, CrawlDatum datum)
+  public void injectedScore(String url, WebPage page)
       throws ScoringFilterException;
 
   /**
@@ -66,11 +60,10 @@ public interface ScoringFilter extends Configurable, Pluggable {
    * 
    * @param url
    *          url of the page
-   * @param datum
-   *          new datum. Filters will modify it in-place.
+   * @param page
    * @throws ScoringFilterException
    */
-  public void initialScore(Text url, CrawlDatum datum)
+  public void initialScore(String url, WebPage page)
       throws ScoringFilterException;
 
   /**
@@ -79,48 +72,12 @@ public interface ScoringFilter extends Configurable, Pluggable {
    * 
    * @param url
    *          url of the page
-   * @param datum
-   *          page's datum, should not be modified
+   * @param page
+   *          {@link WebPage} object relative to the URL
    * @param initSort
    *          initial sort value, or a value from previous filters in chain
    */
-  public float generatorSortValue(Text url, CrawlDatum datum, float initSort)
-      throws ScoringFilterException;
-
-  /**
-   * This method takes all relevant score information from the current datum
-   * (coming from a generated fetchlist) and stores it into
-   * {@link org.apache.nutch.protocol.Content} metadata. This is needed in order
-   * to pass this value(s) to the mechanism that distributes it to outlinked
-   * pages.
-   * 
-   * @param url
-   *          url of the page
-   * @param datum
-   *          source datum. NOTE: modifications to this value are not persisted.
-   * @param content
-   *          instance of content. Implementations may modify this in-place,
-   *          primarily by setting some metadata properties.
-   */
-  public void passScoreBeforeParsing(Text url, CrawlDatum datum, Content content)
-      throws ScoringFilterException;
-
-  /**
-   * Currently a part of score distribution is performed using only data coming
-   * from the parsing process. We need this method in order to ensure the
-   * presence of score data in these steps.
-   * 
-   * @param url
-   *          page url
-   * @param content
-   *          original content. NOTE: modifications to this value are not
-   *          persisted.
-   * @param parse
-   *          target instance to copy the score information to. Implementations
-   *          may modify this in-place, primarily by setting some metadata
-   *          properties.
-   */
-  public void passScoreAfterParsing(Text url, Content content, Parse parse)
+  public float generatorSortValue(String url, WebPage page, float initSort)
       throws ScoringFilterException;
 
   /**
@@ -128,105 +85,48 @@ public interface ScoringFilter extends Configurable, Pluggable {
    * 
    * @param fromUrl
    *          url of the source page
-   * @param parseData
-   *          ParseData instance, which stores relevant score value(s) in its
-   *          metadata. NOTE: filters may modify this in-place, all changes will
-   *          be persisted.
-   * @param targets
-   *          &lt;url, CrawlDatum&gt; pairs. NOTE: filters can modify this
-   *          in-place, all changes will be persisted.
-   * @param adjust
-   *          a CrawlDatum instance, initially null, which implementations may
-   *          use to pass adjustment values to the original CrawlDatum. When
-   *          creating this instance, set its status to
-   *          {@link CrawlDatum#STATUS_LINKED}.
+   * @param scoreData
+   *          A list of {@link ScoreDatum}
    * @param allCount
    *          number of all collected outlinks from the source page
-   * @return if needed, implementations may return an instance of CrawlDatum,
-   *         with status {@link CrawlDatum#STATUS_LINKED}, which contains
-   *         adjustments to be applied to the original CrawlDatum score(s) and
-   *         metadata. This can be null if not needed.
    * @throws ScoringFilterException
    */
-  public CrawlDatum distributeScoreToOutlinks(Text fromUrl,
-      ParseData parseData, Collection<Entry<Text, CrawlDatum>> targets,
-      CrawlDatum adjust, int allCount) throws ScoringFilterException;
+  public void distributeScoreToOutlinks(String fromUrl, WebPage page,
+      Collection<ScoreDatum> scoreData, int allCount)
+      throws ScoringFilterException;
 
   /**
-   * This method calculates a new score of CrawlDatum during CrawlDb update,
-   * based on the initial value of the original CrawlDatum, and also score
-   * values contributed by inlinked pages.
+   * This method calculates a new score during table update, based on the values
+   * contributed by inlinked pages.
    * 
    * @param url
    *          url of the page
-   * @param old
-   *          original datum, with original score. May be null if this is a
-   *          newly discovered page. If not null, filters should use score
-   *          values from this parameter as the starting values - the
-   *          <code>datum</code> parameter may contain values that are no longer
-   *          valid, if other updates occurred between generation and this
-   *          update.
-   * @param datum
-   *          the new datum, with the original score saved at the time when
-   *          fetchlist was generated. Filters should update this in-place, and
-   *          it will be saved in the crawldb.
-   * @param inlinked
-   *          (partial) list of CrawlDatum-s (with their scores) from links
-   *          pointing to this page, found in the current update batch.
+   * @param page {@link WebPage} object relative to the URL
+   * @param inlinkedScoreData
+   *          list of {@link ScoreDatum}s for all inlinks pointing to
+   *          this URL.
    * @throws ScoringFilterException
    */
-  public void updateDbScore(Text url, CrawlDatum old, CrawlDatum datum,
-      List<CrawlDatum> inlinked) throws ScoringFilterException;
+  public void updateScore(String url, WebPage page,
+      List<ScoreDatum> inlinkedScoreData) throws ScoringFilterException;
 
   /**
-   * This method may change the score or status of CrawlDatum during CrawlDb
-   * update, when the URL is neither fetched nor has any inlinks.
-   *
-   * @param url
-   *          URL of the page
-   * @param datum
-   *          CrawlDatum for page
-   * @throws ScoringFilterException
-   */
-  public default void orphanedScore(Text url, CrawlDatum datum)
-      throws ScoringFilterException {
-  }
-
-  /**
-   * This method calculates a indexed document score/boost.
+   * This method calculates a Lucene document boost.
    * 
    * @param url
    *          url of the page
    * @param doc
-   *          indexed document. NOTE: this already contains all information
-   *          collected by indexing filters. Implementations may modify this
-   *          instance, in order to store/remove some information.
-   * @param dbDatum
-   *          current page from CrawlDb. NOTE:
-   *          <ul>
-   *          <li>changes made to this instance are not persisted</li>
-   *          <li>may be null if indexing is done without CrawlDb or if the
-   *          segment is generated not from the CrawlDb (via
-   *          FreeGenerator).</li>
-   *          </ul>
-   * @param fetchDatum
-   *          datum from FetcherOutput (containing among others the fetching
-   *          status)
-   * @param parse
-   *          parsing result. NOTE: changes made to this instance are not
-   *          persisted.
-   * @param inlinks
-   *          current inlinks from LinkDb. NOTE: changes made to this instance
-   *          are not persisted.
+   *          document. NOTE: this already contains all information collected by
+   *          indexing filters. Implementations may modify this instance, in
+   *          order to store/remove some information.
    * @param initScore
-   *          initial boost value for the indexed document.
-   * @return boost value for the indexed document. This value is passed as an
+   *          initial boost value for the Lucene document.
+   * @return boost value for the Lucene document. This value is passed as an
    *         argument to the next scoring filter in chain. NOTE: implementations
-   *         may also express other scoring strategies by modifying the indexed
+   *         may also express other scoring strategies by modifying Lucene
    *         document directly.
    * @throws ScoringFilterException
    */
-  public float indexerScore(Text url, NutchDocument doc, CrawlDatum dbDatum,
-      CrawlDatum fetchDatum, Parse parse, Inlinks inlinks, float initScore)
-      throws ScoringFilterException;
+  public float indexerScore(String url, NutchDocument doc, WebPage page,
+      float initScore) throws ScoringFilterException;
 }

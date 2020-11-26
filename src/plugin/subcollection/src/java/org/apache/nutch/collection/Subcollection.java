@@ -18,8 +18,6 @@ package org.apache.nutch.collection;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
@@ -40,21 +38,16 @@ public class Subcollection extends Configured implements URLFilter {
   public static final String TAG_WHITELIST = "whitelist";
   public static final String TAG_BLACKLIST = "blacklist";
   public static final String TAG_NAME = "name";
-  public static final String TAG_KEY = "key";
   public static final String TAG_ID = "id";
 
-  List<String> blackList = new ArrayList<String>();
-  List<String> whiteList = new ArrayList<String>();
+  ArrayList<String> blackList = new ArrayList<String>();
+
+  ArrayList<String> whiteList = new ArrayList<String>();
 
   /**
    * SubCollection identifier
    */
   String id;
-
-  /**
-   * SubCollection key
-   */
-  String key;
 
   /**
    * SubCollection name
@@ -70,11 +63,6 @@ public class Subcollection extends Configured implements URLFilter {
    * SubCollection blacklist as String
    */
   String blString;
-  
-  /**
-   * Whether the white and black lists are case sensitive
-   */
-  boolean caseInsensitive = false;
 
   /**
    * public Constructor
@@ -85,28 +73,13 @@ public class Subcollection extends Configured implements URLFilter {
    *          name of SubCollection
    */
   public Subcollection(String id, String name, Configuration conf) {
-    this(id, name, null, conf);
-  }
-
-  /**
-   * public Constructor
-   * 
-   * @param id
-   *          id of SubCollection
-   * @param name
-   *          name of SubCollection
-   */
-  public Subcollection(String id, String name, String key, Configuration conf) {
     this(conf);
     this.id = id;
-    this.key = key;
     this.name = name;
-    caseInsensitive = conf.getBoolean("subcollection.case.insensitive", false);
   }
 
   public Subcollection(Configuration conf) {
     super(conf);
-    caseInsensitive = conf.getBoolean("subcollection.case.insensitive", false);
   }
 
   /**
@@ -114,13 +87,6 @@ public class Subcollection extends Configured implements URLFilter {
    */
   public String getName() {
     return name;
-  }
-
-  /**
-   * @return Returns the key
-   */
-  public String getKey() {
-    return key;
   }
 
   /**
@@ -135,7 +101,7 @@ public class Subcollection extends Configured implements URLFilter {
    * 
    * @return Whitelist entries
    */
-  public List<String> getWhiteList() {
+  public ArrayList<String> getWhiteList() {
     return whiteList;
   }
 
@@ -181,16 +147,16 @@ public class Subcollection extends Configured implements URLFilter {
     // first the blacklist
     Iterator<String> i = blackList.iterator();
     while (i.hasNext()) {
-      String row = (String) i.next();
-      if (urlString.contains(row))
+      String row = i.next();
+      if (urlString.indexOf(row) != -1)
         return null;
     }
 
     // then whitelist
     i = whiteList.iterator();
     while (i.hasNext()) {
-      String row = (String) i.next();
-      if (urlString.contains(row))
+      String row = i.next();
+      if (urlString.indexOf(row) != -1)
         return urlString;
     }
     return null;
@@ -217,12 +183,6 @@ public class Subcollection extends Configured implements URLFilter {
       this.blString = DOMUtil.getChildText(nodeList.item(0)).trim();
       parseList(this.blackList, blString);
     }
-
-    // Check if there's a key element or set default name
-    nodeList = collection.getElementsByTagName(TAG_KEY);
-    if (nodeList.getLength() == 1) {
-      this.key = DOMUtil.getChildText(nodeList.item(0)).trim();
-    }
   }
 
   /**
@@ -232,20 +192,14 @@ public class Subcollection extends Configured implements URLFilter {
    * @param list
    * @param text
    */
-  protected void parseList(List<String> list, String text) {
+  protected void parseList(ArrayList<String> list, String text) {
     list.clear();
 
     StringTokenizer st = new StringTokenizer(text, "\n\r");
 
     while (st.hasMoreElements()) {
       String line = (String) st.nextElement();
-      line = line.trim();
-      if (line.isEmpty())
-        continue;
-      if (caseInsensitive) {
-        line = line.toLowerCase(Locale.ROOT);
-      }
-      list.add(line);
+      list.add(line.trim());
     }
   }
 

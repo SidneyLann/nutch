@@ -19,16 +19,17 @@ package org.apache.nutch.metadata;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 /**
  * A multi-valued metadata container.
+ * 
+ * @author Chris Mattmann
+ * @author J&eacute;r&ocirc;me Charron
+ * 
  */
 public class Metadata implements Writable, CreativeCommons, DublinCore,
     HttpHeaders, Nutch, Feed {
@@ -42,7 +43,7 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
    * Constructs a new, empty metadata.
    */
   public Metadata() {
-    metadata = new HashMap<>();
+    metadata = new HashMap<String, String[]>();
   }
 
   /**
@@ -93,6 +94,15 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
     return _getValues(name);
   }
 
+  /**
+   * Get the metadata list
+   *
+   * @return the values associated to a metadata name.
+   */
+  public Set<Map.Entry<String, String[]>> getMetaData() {
+    return metadata.entrySet();
+  }
+
   private String[] _getValues(final String name) {
     String[] values = metadata.get(name);
     if (values == null) {
@@ -119,31 +129,6 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
       System.arraycopy(values, 0, newValues, 0, values.length);
       newValues[newValues.length - 1] = value;
       metadata.put(name, newValues);
-    }
-  }
-
-  /**
-   * Add all name/value mappings (merge two metadata mappings). If a name
-   * already exists in current metadata the values are added to existing values.
-   *
-   * @param metadata
-   *          other Metadata to be merged
-   */
-  public void addAll(Metadata metadata) {
-    for (String name : metadata.names()) {
-      String[] addValues = metadata.getValues(name);
-      if (addValues == null)
-        continue;
-      String[] oldValues = this.metadata.get(name);
-      if (oldValues == null) {
-        this.metadata.put(name, addValues);
-      } else {
-        String[] newValues = new String[oldValues.length + addValues.length];
-        System.arraycopy(oldValues, 0, newValues, 0, oldValues.length);
-        System.arraycopy(addValues, 0, newValues, oldValues.length,
-            addValues.length);
-        this.metadata.put(name, newValues);
-      }
     }
   }
 
@@ -205,12 +190,11 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
       return false;
     }
 
-    Metadata other = null;
-    try {
-      other = (Metadata) o;
-    } catch (ClassCastException cce) {
+    if (!Metadata.class.isAssignableFrom(o.getClass())) {
       return false;
     }
+
+    Metadata other = (Metadata) o;
 
     if (other.size() != size()) {
       return false;
@@ -232,28 +216,13 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
     return true;
   }
 
-  @Override
   public String toString() {
-    return toString("=", " ");
-  }
-
-  /**
-   * @param separator
-   *          separator between Metadata's key-value pairs
-   * @param keyValueSeparator
-   *          separator between key and value
-   * @return list of all key-value pairs in Metadata using the provided
-   *         separators
-   */
-  public String toString(String separator, String keyValueSeparator) {
-    StringBuilder buf = new StringBuilder();
+    StringBuffer buf = new StringBuffer();
     String[] names = names();
     for (int i = 0; i < names.length; i++) {
       String[] values = _getValues(names[i]);
       for (int j = 0; j < values.length; j++) {
-        if (buf.length() > 0)
-          buf.append(separator);
-        buf.append(names[i]).append(keyValueSeparator).append(values[j]);
+        buf.append(names[i]).append("=").append(values[j]).append(" ");
       }
     }
     return buf.toString();
@@ -293,4 +262,3 @@ public class Metadata implements Writable, CreativeCommons, DublinCore,
   }
 
 }
-  

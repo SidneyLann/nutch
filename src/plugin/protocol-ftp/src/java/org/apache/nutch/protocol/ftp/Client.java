@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.ftp;
 
 import java.io.BufferedReader;
@@ -21,20 +22,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-
+import java.nio.charset.StandardCharsets;
 import java.net.InetAddress;
 import java.net.Socket;
-
 import java.util.List;
+//import java.util.LinkedList;
 
 import org.apache.commons.net.MalformedServerReplyException;
-
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPCommand;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPFileEntryParser;
 import org.apache.commons.net.ftp.FTPReply;
-
 import org.apache.commons.net.ftp.FTPConnectionClosedException;
 
 /***********************************************
@@ -50,12 +49,12 @@ import org.apache.commons.net.ftp.FTPConnectionClosedException;
  * denominator as following: (1) Use stream mode for data transfer. Block mode
  * will be better for multiple file downloading and partial file downloading.
  * However not every ftpd has block mode support. (2) Use passive mode for data
- * connection. So Nutch will work if we run behind firewall. (3) Data connection
+ * connection. So nutch will work if we run behind firewall. (3) Data connection
  * is opened/closed per ftp command for the reasons listed in (1). There are ftp
- * servers out there, when partial downloading is enforced by closing data
+ * servers out there, when partial downloading is enforeced by closing data
  * channel socket on our client side, the server side immediately closes control
  * channel (socket). Our codes deal with such a bad behavior. (4) LIST is used
- * to obtain remote file attributes if possible. MDTM and SIZE would be nice, but
+ * to obtain remote file attributes if possible. MDTM &amp; SIZE would be nice, but
  * not as ubiquitously implemented as LIST. (5) Avoid using ABOR in single
  * thread? Do not use it at all.
  * 
@@ -75,7 +74,7 @@ public class Client extends FTP {
   // private FTPFileEntryParser __entryParser;
   private String __systemName;
 
-  /** Public default constructor */
+  // constructor
   public Client() {
     __initDefaults();
     __dataTimeout = -1;
@@ -87,10 +86,10 @@ public class Client extends FTP {
     __passiveHost = null;
     __passivePort = -1;
     __systemName = null;
-    // __fileType = FTP.ASCII_FILE_TYPE;
-    // __fileFormat = FTP.NON_PRINT_TEXT_FORMAT;
-    // __entryParser = null;
-  }
+    /*
+     * __fileType = FTP.ASCII_FILE_TYPE; __fileFormat =
+     * FTP.NON_PRINT_TEXT_FORMAT; __entryParser = null;
+     */}
 
   // parse reply for pass()
   private void __parsePassiveModeReply(String reply)
@@ -310,7 +309,7 @@ public class Client extends FTP {
   }
 
   /**
-   * retrieve list reply for path
+   * Retrieve a list reply for path
    * 
    * @param path
    * @param entries
@@ -332,7 +331,7 @@ public class Client extends FTP {
           + ((path == null) ? "" : path));
 
     BufferedReader reader = new BufferedReader(new InputStreamReader(
-        socket.getInputStream()));
+        socket.getInputStream(), StandardCharsets.UTF_8));
 
     // force-close data channel socket, when download limit is reached
     // boolean mandatory_close = false;
@@ -385,7 +384,7 @@ public class Client extends FTP {
   }
 
   /**
-   * retrieve file for path
+   * Retrieve a file for path
    * 
    * @param path
    * @param os
@@ -463,12 +462,7 @@ public class Client extends FTP {
 
   }
 
-  /**
-   * reply check after closing data connection
-   * 
-   * @param reply
-   * @return
-   */
+  // reply check after closing data connection
   private boolean _notBadReply(int reply) {
 
     if (FTPReply.isPositiveCompletion(reply)) {

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,29 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.urlfilter.suffix;
 
+import java.lang.invoke.MethodHandles;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.*;
 
 import org.apache.nutch.util.NutchConfiguration;
 import org.apache.nutch.util.SuffixStringMatcher;
-import org.apache.nutch.net.URLFilter;
+
 import org.apache.nutch.plugin.Extension;
 import org.apache.nutch.plugin.PluginRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
 import java.io.Reader;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
 
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -47,7 +52,8 @@ import java.net.MalformedURLException;
  * <li>property "urlfilter.suffix.file" in ./conf/nutch-default.xml, and</li>
  * <li>attribute "file" in plugin.xml of this plugin</li>
  * </ol>
- * If the config file is missing, all URLs will be rejected.
+ * Attribute "file" has higher precedence if defined. If the config file is
+ * missing, all URLs will be rejected.
  * 
  * <p>
  * This filter can be configured to work in one of two modes:
@@ -63,22 +69,22 @@ import java.net.MalformedURLException;
  * The format of this config file is one URL suffix per line, with no preceding
  * whitespace. Order, in which suffixes are specified, doesn't matter. Blank
  * lines and comments (#) are allowed.
- * </p>
+ *
  * <p>
  * A single '+' or '-' sign not followed by any suffix must be used once, to
  * signify the mode this plugin operates in. An optional single 'I' can be
  * appended, to signify that suffix matches should be case-insensitive. The
  * default, if not specified, is to use case-sensitive matches, i.e. suffix
  * '.JPG' does not match '.jpg'.
- * </p>
+ *
  * <p>
  * NOTE: the format of this file is different from urlfilter-prefix, because
  * that plugin doesn't support allowed/prohibited prefixes (only supports
  * allowed prefixes). Please note that this plugin does not support regular
  * expressions, it only accepts literal suffixes. I.e. a suffix "+*.jpg" is most
  * probably wrong, you should use "+.jpg" instead.
- * </p>
- * <h3>Example 1</h3>
+ *
+ * <strong>Example 1</strong>
  * <p>
  * The configuration shown below will accept all URLs with '.html' or '.htm'
  * suffixes (case-sensitive - '.HTML' or '.HTM' will be rejected), and prohibit
@@ -96,7 +102,8 @@ import java.net.MalformedURLException;
  *  .htm
  * </pre>
  * 
- * <h4>Example 2</h4>
+ *
+ * <strong>Example 2</strong>
  * <p>
  * The configuration shown below will accept all URLs except common graphical
  * formats.
@@ -115,7 +122,9 @@ import java.net.MalformedURLException;
  *  .jpeg
  *  .bmp
  * </pre>
- *  
+ * 
+ *
+ * 
  * @author Andrzej Bialecki
  */
 public class SuffixURLFilter implements URLFilter {
@@ -146,7 +155,7 @@ public class SuffixURLFilter implements URLFilter {
       return null;
     String _url;
     if (ignoreCase)
-      _url = url.toLowerCase();
+      _url = url.toLowerCase(Locale.ROOT);
     else
       _url = url;
     if (filterFromPath) {
@@ -176,7 +185,9 @@ public class SuffixURLFilter implements URLFilter {
 
     // handle missing config file
     if (reader == null) {
-      LOG.warn("Missing urlfilter.suffix.file, all URLs will be rejected!");
+      if (LOG.isWarnEnabled()) {
+        LOG.warn("Missing urlfilter.suffix.file, all URLs will be rejected!");
+      }
       suffixes = new SuffixStringMatcher(new String[0]);
       modeAccept = false;
       ignoreCase = false;
@@ -189,7 +200,6 @@ public class SuffixURLFilter implements URLFilter {
     String line;
 
     while ((line = in.readLine()) != null) {
-      line = line.trim();
       if (line.length() == 0)
         continue;
 
@@ -219,7 +229,7 @@ public class SuffixURLFilter implements URLFilter {
     }
     if (ignore) {
       for (int i = 0; i < aSuffixes.size(); i++) {
-        aSuffixes.set(i, ((String) aSuffixes.get(i)).toLowerCase());
+        aSuffixes.set(i, ((String) aSuffixes.get(i)).toLowerCase(Locale.ROOT));
       }
     }
     suffixes = new SuffixStringMatcher(aSuffixes);
@@ -230,14 +240,14 @@ public class SuffixURLFilter implements URLFilter {
   public static void main(String args[]) throws IOException {
 
     SuffixURLFilter filter;
-    if (args.length >= 1)
-      filter = new SuffixURLFilter(new FileReader(args[0]));
-    else {
+    if (args.length >= 1) {
+      filter = new SuffixURLFilter(new InputStreamReader(new FileInputStream(args[0]), StandardCharsets.UTF_8));
+    } else {
       filter = new SuffixURLFilter();
       filter.setConf(NutchConfiguration.create());
     }
 
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     String line;
     while ((line = in.readLine()) != null) {
       String out = filter.filter(line);
@@ -262,34 +272,39 @@ public class SuffixURLFilter implements URLFilter {
         break;
       }
     }
-
-    if (attributeFile != null && attributeFile.trim().isEmpty()) {
+    if (attributeFile != null && attributeFile.trim().equals(""))
       attributeFile = null;
-    }
-
     if (attributeFile != null) {
-      LOG.info("Attribute \"file\" is defined for plugin {} as {}", pluginName, attributeFile);
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Attribute \"file\" is defined for plugin " + pluginName
+            + " as " + attributeFile);
+      }
+    } else {
+      // if (LOG.isWarnEnabled()) {
+      // LOG.warn("Attribute \"file\" is not defined in plugin.xml for
+      // plugin "+pluginName);
+      // }
     }
 
-    // precedence hierarchy for definition of filter rules
-    // (first non-empty definition takes precedence):
-    // 1. string rules defined by `urlfilter.domaindenylist.rules`
-    // 2. rule file name defined by `urlfilter.domaindenylist.file`
-    // 3. rule file name defined in plugin.xml (`attributeFile`)
-    String file = conf.get("urlfilter.suffix.file", attributeFile);
+    String file = conf.get("urlfilter.suffix.file");
     String stringRules = conf.get("urlfilter.suffix.rules");
+    // attribute "file" takes precedence if defined
+    if (attributeFile != null)
+      file = attributeFile;
     Reader reader = null;
     if (stringRules != null) { // takes precedence over files
       reader = new StringReader(stringRules);
     } else {
-      LOG.info("Reading {} rules file {}", pluginName, file);
       reader = conf.getConfResourceAsReader(file);
     }
 
     try {
       readConfiguration(reader);
     } catch (IOException e) {
-      LOG.error("Error reading " + pluginName + " rule file " + file, e);
+      if (LOG.isErrorEnabled()) {
+        LOG.error(e.getMessage());
+      }
+      throw new RuntimeException(e.getMessage(), e);
     }
   }
 

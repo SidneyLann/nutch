@@ -49,10 +49,4 @@
   <description></description>
 </property>
 
-<property>
-  <name>http.content.limit</name>
-  <value>65536</value>
-  <description></description>
-</property>
-
 </configuration>

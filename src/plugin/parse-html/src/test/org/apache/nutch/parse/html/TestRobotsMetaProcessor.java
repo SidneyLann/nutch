@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse.html;
 
 import org.apache.nutch.parse.HTMLMetaTags;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.net.URL;
 
 import org.cyberneko.html.parsers.*;
-import org.junit.Assert;
-import org.junit.Test;
 import org.xml.sax.*;
 import org.w3c.dom.*;
 import org.apache.html.dom.*;
+
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /** Unit tests for HTMLMetaProcessor. */
 public class TestRobotsMetaProcessor {
@@ -117,11 +120,11 @@ public class TestRobotsMetaProcessor {
           { new URL("http://www.nutch.org"),
               new URL("http://www.nutch.org/base/") } };
     } catch (Exception e) {
-      Assert.assertTrue("couldn't make test URLs!", false);
+      assertTrue("couldn't make test URLs!", false);
     }
 
     for (int i = 0; i < tests.length; i++) {
-      byte[] bytes = tests[i].getBytes();
+      byte[] bytes = tests[i].getBytes(StandardCharsets.UTF_8);
 
       DocumentFragment node = new HTMLDocumentImpl().createDocumentFragment();
 
@@ -134,19 +137,18 @@ public class TestRobotsMetaProcessor {
       HTMLMetaTags robotsMeta = new HTMLMetaTags();
       HTMLMetaProcessor.getMetaTags(robotsMeta, node, currURLsAndAnswers[i][0]);
 
-      Assert.assertTrue("got index wrong on test " + i,
+      assertTrue("got index wrong on test " + i,
           robotsMeta.getNoIndex() == answers[i][0]);
-      Assert.assertTrue("got follow wrong on test " + i,
+      assertTrue("got follow wrong on test " + i,
           robotsMeta.getNoFollow() == answers[i][1]);
-      Assert.assertTrue("got cache wrong on test " + i,
+      assertTrue("got cache wrong on test " + i,
           robotsMeta.getNoCache() == answers[i][2]);
-      Assert
-          .assertTrue(
-              "got base href wrong on test " + i + " (got "
-                  + robotsMeta.getBaseHref() + ")",
-              ((robotsMeta.getBaseHref() == null) && (currURLsAndAnswers[i][1] == null))
-                  || ((robotsMeta.getBaseHref() != null) && robotsMeta
-                      .getBaseHref().equals(currURLsAndAnswers[i][1])));
+      assertTrue(
+          "got base href wrong on test " + i + " (got "
+              + robotsMeta.getBaseHref() + ")",
+          ((robotsMeta.getBaseHref() == null) && (currURLsAndAnswers[i][1] == null))
+              || ((robotsMeta.getBaseHref() != null) && robotsMeta
+                  .getBaseHref().equals(currURLsAndAnswers[i][1])));
 
     }
   }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse;
 
 import java.net.URL;
@@ -68,13 +69,6 @@ public class HTMLMetaTags {
   }
 
   /**
-   * Sets <code>noFollow</code> to <code>false</code>.
-   */
-  public void setFollow() {
-    noFollow = false;
-  }
-
-  /**
    * Sets <code>noIndex</code> to <code>true</code>.
    */
   public void setNoIndex() {
@@ -82,24 +76,10 @@ public class HTMLMetaTags {
   }
 
   /**
-   * Sets <code>noIndex</code> to <code>false</code>.
-   */
-  public void setIndex() {
-    noIndex = false;
-  }
-
-  /**
    * Sets <code>noCache</code> to <code>true</code>.
    */
   public void setNoCache() {
     noCache = true;
-  }
-
-  /**
-   * Sets <code>noCache</code> to <code>false</code>.
-   */
-  public void setCache() {
-    noCache = false;
   }
 
   /**
@@ -213,7 +193,6 @@ public class HTMLMetaTags {
     }
     sb.append(" * http-equiv tags:\n");
     Iterator<Object> it = httpEquivTags.keySet().iterator();
-    it = httpEquivTags.keySet().iterator();
     while (it.hasNext()) {
       String key = (String) it.next();
       sb.append("   - " + key + "\t=\t" + httpEquivTags.get(key) + "\n");

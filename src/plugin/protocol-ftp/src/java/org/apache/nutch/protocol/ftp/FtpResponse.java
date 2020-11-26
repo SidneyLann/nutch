@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,35 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.ftp;
 
+import org.apache.avro.util.Utf8;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.ftp.parser.DefaultFTPFileEntryParserFactory;
 import org.apache.commons.net.ftp.parser.ParserInitializationException;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.protocol.Content;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.net.protocols.HttpDateFormat;
 import org.apache.nutch.net.protocols.Response;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.protocol.Content;
+import org.apache.nutch.storage.WebPage;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.util.List;
-import java.util.LinkedList;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
+import java.util.List;
 
-/**
+/************************************
  * FtpResponse.java mimics ftp replies as http response. It tries its best to
  * follow http's way for headers, response codes as well as exceptions.
  * 
  * Comments: In this class, all FtpException*.java thrown by Client.java and
  * some important commons-net exceptions passed by Client.java must have been
  * properly dealt with. They'd better not be leaked to the caller of this class.
- */
+ * 
+ * @author John Xing
+ ***********************************/
 public class FtpResponse {
 
   private String orig;
@@ -74,7 +80,7 @@ public class FtpResponse {
         getHeader(Response.CONTENT_TYPE), headers, this.conf);
   }
 
-  public FtpResponse(URL url, CrawlDatum datum, Ftp ftp, Configuration conf)
+  public FtpResponse(URL url, WebPage page, Ftp ftp, Configuration conf)
       throws FtpException, IOException {
 
     this.orig = url.toString();
@@ -85,12 +91,13 @@ public class FtpResponse {
     if (!"ftp".equals(url.getProtocol()))
       throw new FtpException("Not a ftp url:" + url);
 
-    if (url.getQuery() != null) {
-      Ftp.LOG.warn(
-          "ftp:// URL may not include a query (query part ignored): {}", url);
+    if (url.getPath() != url.getFile()) {
+      if (Ftp.LOG.isWarnEnabled()) {
+        Ftp.LOG.warn("url.getPath() != url.getFile(): " + url);
+      }
     }
 
-    String path = url.getPath().isEmpty() ? "/" : url.getPath();
+    String path = "".equals(url.getPath()) ? "/" : url.getPath();
 
     try {
 
@@ -106,7 +113,9 @@ public class FtpResponse {
 
       InetAddress addr = InetAddress.getByName(url.getHost());
       if (addr != null && conf.getBoolean("store.ip.address", false) == true) {
-        headers.add("_ip_", addr.getHostAddress());
+        String ipString = addr.getHostAddress(); // get the ip address
+        page.getMetadata().put(new Utf8("_ip_"),
+            ByteBuffer.wrap(ipString.getBytes(StandardCharsets.UTF_8)));
       }
 
       // idled too long, remote server or ourselves may have timed out,
@@ -250,13 +259,11 @@ public class FtpResponse {
       }
 
       this.content = null;
-      
-      path = java.net.URLDecoder.decode(path, "UTF-8");
 
       if (path.endsWith("/")) {
-        getDirAsHttpResponse(path, datum.getModifiedTime());
+        getDirAsHttpResponse(path, page.getModifiedTime());
       } else {
-        getFileAsHttpResponse(path, datum.getModifiedTime());
+        getFileAsHttpResponse(path, page.getModifiedTime());
       }
 
       // reset next renewalTime, take the lesser
@@ -282,7 +289,7 @@ public class FtpResponse {
 
     } catch (Exception e) {
       if (Ftp.LOG.isWarnEnabled()) {
-        Ftp.LOG.warn("Error: ", e);
+        Ftp.LOG.warn("" + e);
       }
       // for any un-foreseen exception (run time exception or not),
       // do ultimate clean and leave ftp.client for garbage collection
@@ -318,7 +325,7 @@ public class FtpResponse {
 
       FTPFile ftpFile = (FTPFile) list.get(0);
       this.headers.set(Response.CONTENT_LENGTH,
-          Long.valueOf(ftpFile.getSize()).toString());
+          new Long(ftpFile.getSize()).toString());
       this.headers.set(Response.LAST_MODIFIED,
           HttpDateFormat.toString(ftpFile.getTimestamp()));
       // don't retrieve the file if not changed.
@@ -326,7 +333,7 @@ public class FtpResponse {
         code = 304;
         return;
       }
-      os = new ByteArrayOutputStream(ftp.getBufferSize());
+      os = new ByteArrayOutputStream(Ftp.BUFFER_SIZE);
       ftp.client.retrieveFile(path, os, ftp.maxContentLength);
 
       this.content = os.toByteArray();
@@ -365,7 +372,7 @@ public class FtpResponse {
 
       FTPFile ftpFile = (FTPFile) list.get(0);
       this.headers.set(Response.CONTENT_LENGTH,
-          Long.valueOf(ftpFile.getSize()).toString());
+          new Long(ftpFile.getSize()).toString());
       // this.headers.put("content-type", "text/html");
       this.headers.set(Response.LAST_MODIFIED,
           HttpDateFormat.toString(ftpFile.getTimestamp()));
@@ -426,7 +433,7 @@ public class FtpResponse {
       ftp.client.retrieveList(null, list, ftp.maxContentLength, ftp.parser);
       this.content = list2html(list, path, "/".equals(path) ? false : true);
       this.headers.set(Response.CONTENT_LENGTH,
-          Integer.valueOf(this.content.length).toString());
+          new Integer(this.content.length).toString());
       this.headers.set(Response.CONTENT_TYPE, "text/html");
       // this.headers.put("Last-Modified", null);
 
@@ -450,7 +457,7 @@ public class FtpResponse {
 
       this.content = list2html(list, path, "/".equals(path) ? false : true);
       this.headers.set(Response.CONTENT_LENGTH,
-          Integer.valueOf(this.content.length).toString());
+          new Integer(this.content.length).toString());
       this.headers.set(Response.CONTENT_TYPE, "text/html");
       // this.headers.put("Last-Modified", null);
 
@@ -515,7 +522,7 @@ public class FtpResponse {
 
     x.append("</pre></body></html>\n");
 
-    return new String(x).getBytes();
+    return new String(x).getBytes(StandardCharsets.UTF_8);
   }
 
 }

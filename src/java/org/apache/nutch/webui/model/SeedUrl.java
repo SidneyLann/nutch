@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -25,7 +25,6 @@ import javax.persistence.Id;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.j256.ormlite.field.DatabaseField;
 
 @Entity
@@ -37,7 +36,7 @@ public class SeedUrl implements Serializable {
 
   @Column
   @DatabaseField(foreign = true, foreignAutoCreate = true, foreignAutoRefresh = true)
-  @JsonBackReference
+  @JsonIgnore
   private SeedList seedList;
 
   @Column

@@ -19,4 +19,3 @@
  * Parse Flash SWF files.
  */
 package org.apache.nutch.parse.swf;
-

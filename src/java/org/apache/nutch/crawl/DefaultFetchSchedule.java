@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.crawl;
 
-import org.apache.hadoop.io.Text;
+import org.apache.nutch.storage.WebPage;
 
 /**
  * This class implements the default re-fetch schedule. That is, no matter if
@@ -29,20 +30,13 @@ import org.apache.hadoop.io.Text;
 public class DefaultFetchSchedule extends AbstractFetchSchedule {
 
   @Override
-  public CrawlDatum setFetchSchedule(Text url, CrawlDatum datum,
-      long prevFetchTime, long prevModifiedTime, long fetchTime,
-      long modifiedTime, int state) {
-    datum = super.setFetchSchedule(url, datum, prevFetchTime, prevModifiedTime,
+  public void setFetchSchedule(String url, WebPage page, long prevFetchTime,
+      long prevModifiedTime, long fetchTime, long modifiedTime, int state) {
+    super.setFetchSchedule(url, page, prevFetchTime, prevModifiedTime,
         fetchTime, modifiedTime, state);
-    if (datum.getFetchInterval() == 0) {
-      datum.setFetchInterval(defaultInterval);
-    }
-    datum.setFetchTime(fetchTime + (long) datum.getFetchInterval() * 1000);
-    if (modifiedTime <= 0 || state == FetchSchedule.STATUS_MODIFIED) {
-      // Set modifiedTime to fetchTime on first successful fetch
-      modifiedTime = fetchTime;
-    }
-    datum.setModifiedTime(modifiedTime);
-    return datum;
+    page.setFetchTime(fetchTime + page.getFetchInterval() * 1000L);
+    page.setModifiedTime(modifiedTime);
+    page.setPrevModifiedTime(prevModifiedTime);
   }
+
 }

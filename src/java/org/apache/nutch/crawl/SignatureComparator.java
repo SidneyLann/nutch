@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,29 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.crawl;
 
-import java.util.Comparator;
+import java.nio.ByteBuffer;
 
-public class SignatureComparator implements Comparator<Object> {
-  public int compare(Object o1, Object o2) {
-    return _compare(o1, o2);
+public class SignatureComparator {
+  public static int compare(byte[] data1, byte[] data2) {
+    if (data1 == null && data2 == null)
+      return 0;
+    if (data1 == null)
+      return -1;
+    if (data2 == null)
+      return 1;
+    return _compare(data1, 0, data1.length, data2, 0, data2.length);
   }
 
-  public static int _compare(Object o1, Object o2) {
-    if (o1 == null && o2 == null)
+  public static int compare(ByteBuffer buf1, ByteBuffer buf2) {
+    if (buf1 == null && buf2 == null)
       return 0;
-    if (o1 == null)
+    if (buf1 == null)
       return -1;
-    if (o2 == null)
+    if (buf2 == null)
       return 1;
-    if (!(o1 instanceof byte[]))
-      return -1;
-    if (!(o2 instanceof byte[]))
-      return 1;
-    byte[] data1 = (byte[]) o1;
-    byte[] data2 = (byte[]) o2;
-    return _compare(data1, 0, data1.length, data2, 0, data2.length);
+    return _compare(buf1.array(), buf1.arrayOffset() + buf1.position(),
+        buf1.remaining(), buf2.array(), buf2.arrayOffset() + buf2.position(),
+        buf2.remaining());
   }
 
   public static int _compare(byte[] data1, int s1, int l1, byte[] data2,

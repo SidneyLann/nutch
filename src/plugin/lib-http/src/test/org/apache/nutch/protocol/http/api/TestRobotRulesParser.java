@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.http.api;
 
-import org.junit.Assert;
+import java.nio.charset.StandardCharsets;
+
+import org.junit.Before;
 import org.junit.Test;
 
 import crawlercommons.robots.BaseRobotRules;
+
+import static org.junit.Assert.*;
 
 /**
  * JUnit test case which tests 1. that robots filtering is performed correctly
@@ -66,7 +71,8 @@ public class TestRobotRulesParser {
   private HttpRobotRulesParser parser;
   private BaseRobotRules rules;
 
-  public TestRobotRulesParser() {
+  @Before
+  public void setUp() {
     parser = new HttpRobotRulesParser();
   }
 
@@ -76,22 +82,22 @@ public class TestRobotRulesParser {
    */
   @Test
   public void testRobotsAgent() {
-    rules = parser.parseRules("testRobotsAgent", ROBOTS_STRING.getBytes(),
+    rules = parser.parseRules("testRobotsAgent", ROBOTS_STRING.getBytes(StandardCharsets.UTF_8),
         CONTENT_TYPE, SINGLE_AGENT);
 
     for (int counter = 0; counter < TEST_PATHS.length; counter++) {
-      Assert.assertTrue(
+      assertTrue(
           "testing on agent (" + SINGLE_AGENT + "), and " + "path "
               + TEST_PATHS[counter] + " got "
               + rules.isAllowed(TEST_PATHS[counter]),
           rules.isAllowed(TEST_PATHS[counter]) == RESULTS[counter]);
     }
 
-    rules = parser.parseRules("testRobotsAgent", ROBOTS_STRING.getBytes(),
+    rules = parser.parseRules("testRobotsAgent", ROBOTS_STRING.getBytes(StandardCharsets.UTF_8),
         CONTENT_TYPE, MULTIPLE_AGENTS);
 
     for (int counter = 0; counter < TEST_PATHS.length; counter++) {
-      Assert.assertTrue(
+      assertTrue(
           "testing on agents (" + MULTIPLE_AGENTS + "), and " + "path "
               + TEST_PATHS[counter] + " got "
               + rules.isAllowed(TEST_PATHS[counter]),
@@ -108,15 +114,15 @@ public class TestRobotRulesParser {
   public void testCrawlDelay() {
     // for SINGLE_AGENT, the crawl delay of 10 sec ie. 10000 msec must be
     // returned by the parser
-    rules = parser.parseRules("testCrawlDelay", ROBOTS_STRING.getBytes(),
+    rules = parser.parseRules("testCrawlDelay", ROBOTS_STRING.getBytes(StandardCharsets.UTF_8),
         CONTENT_TYPE, SINGLE_AGENT);
-    Assert.assertTrue("testing crawl delay for agent " + SINGLE_AGENT + " : ",
+    assertTrue("testing crawl delay for agent " + SINGLE_AGENT + " : ",
         (rules.getCrawlDelay() == 10000));
 
     // for UNKNOWN_AGENT, the default crawl delay must be returned.
-    rules = parser.parseRules("testCrawlDelay", ROBOTS_STRING.getBytes(),
+    rules = parser.parseRules("testCrawlDelay", ROBOTS_STRING.getBytes(StandardCharsets.UTF_8),
         CONTENT_TYPE, UNKNOWN_AGENT);
-    Assert.assertTrue("testing crawl delay for agent " + UNKNOWN_AGENT + " : ",
+    assertTrue("testing crawl delay for agent " + UNKNOWN_AGENT + " : ",
         (rules.getCrawlDelay() == Long.MIN_VALUE));
   }
 }

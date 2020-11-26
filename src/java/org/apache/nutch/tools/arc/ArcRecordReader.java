@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -19,6 +19,7 @@ package org.apache.nutch.tools.arc;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 
 import org.slf4j.Logger;
@@ -30,31 +31,31 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileSplit;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
 
 /**
+ * <p>
  * The <code>ArchRecordReader</code> class provides a record reader which reads
  * records from arc files.
+ *
+ * 
  * <p>
  * Arc files are essentially tars of gzips. Each record in an arc file is a
  * compressed gzip. Multiple records are concatenated together to form a
- * complete arc.</p> 
- * <p>For more information on the arc file format 
- * @see <a href='http://www.archive.org/web/researcher/ArcFileFormat.php'>ArcFileFormat</a>.
- * </p>
- * 
+ * complete arc. For more information on the arc file format see
+ * <a href="http://www.archive.org/web/researcher/ArcFileFormat.php">
+ *   http://www.archive.org/web/researcher/ArcFileFormat.php</a>.
+ *
  * <p>
  * Arc files are used by the internet archive and grub projects.
- * </p>
+ *
  * 
- * @see <a href='http://www.archive.org/'>archive.org</a> 
- * @see <a href='http://www.grub.org/'>grub.org</a>
+ * @see <a href="http://www.archive.org/">http://www.archive.org/</a>
+ * @see <a href="http://www.grub.org/">http://www.grub.org/</a>
  */
-public class ArcRecordReader extends RecordReader<Text, BytesWritable> {
+public class ArcRecordReader implements RecordReader<Text, BytesWritable> {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
@@ -72,7 +73,7 @@ public class ArcRecordReader extends RecordReader<Text, BytesWritable> {
   /**
    * <p>
    * Returns true if the byte array passed matches the gzip header magic number.
-   * </p>
+   *
    * 
    * @param input
    *          The byte array to check.
@@ -169,28 +170,12 @@ public class ArcRecordReader extends RecordReader<Text, BytesWritable> {
     }
   }
 
-  public BytesWritable getCurrentValue(){
-    return new BytesWritable();
-  }
-
-  public Text getCurrentKey(){
-    return new Text();
-  }
-
-  public boolean nextKeyValue(){
-    return false;
-  }
-  
-  public void initialize(InputSplit split, TaskAttemptContext context){
-      
-  }
-
   /**
    * <p>
    * Returns true if the next record in the split is read into the key and value
    * pair. The key will be the arc record header and the values will be the raw
    * content bytes of the arc record.
-   * </p>
+   *
    * 
    * @param key
    *          The record key
@@ -286,7 +271,7 @@ public class ArcRecordReader extends RecordReader<Text, BytesWritable> {
         }
 
         // create the header and the raw content minus the header
-        String header = new String(content, 0, eol).trim();
+        String header = new String(content, 0, eol, StandardCharsets.UTF_8).trim();
         byte[] raw = new byte[(content.length - eol) - 1];
         System.arraycopy(content, eol + 1, raw, 0, raw.length);
 
@@ -308,7 +293,7 @@ public class ArcRecordReader extends RecordReader<Text, BytesWritable> {
         return true;
       }
     } catch (Exception e) {
-      LOG.error("Failed reading ARC record: ", e);
+      LOG.equals(StringUtils.stringifyException(e));
     }
 
     // couldn't populate the record or there is no next record to read

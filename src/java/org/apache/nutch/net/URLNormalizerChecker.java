@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,83 +14,105 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.net;
 
-import java.net.MalformedURLException;
+import org.apache.nutch.plugin.Extension;
+import org.apache.nutch.plugin.ExtensionPoint;
+import org.apache.nutch.plugin.PluginRepository;
 
-import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.conf.Configuration;
 
-import org.apache.nutch.util.AbstractChecker;
 import org.apache.nutch.util.NutchConfiguration;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Checks one given normalizer or all normalizers.
  */
-public class URLNormalizerChecker extends AbstractChecker {
+public class URLNormalizerChecker {
 
-  private String scope = URLNormalizers.SCOPE_DEFAULT;
-  URLNormalizers normalizers;
+  private Configuration conf;
 
-  @Override
-  public int run(String[] args) throws Exception {
-    usage = "Usage: URLNormalizerChecker [-Dproperty=value]... [-normalizer <normalizerName>] [-scope <scope>] (-stdin | -listen <port> [-keepClientCnxOpen])\n"
-        + "\n  -normalizer\tURL normalizer plugin (eg. urlnormalizer-basic) to check,"
-        + "\n             \t(if not given all configured URL normalizers are applied)"
-        + "\n  -scope     \tone of: default,partition,generate_host_count,fetcher,crawldb,linkdb,inject,outlink"
-        + "\n  -stdin     \ttool reads a list of URLs from stdin, one URL per line"
-        + "\n  -listen <port>\trun tool as Telnet server listening on <port>"
-        + "\n\nAn empty line is added to the output if a URL fails to normalize (MalformedURLException or null returned).\n";
+  public URLNormalizerChecker(Configuration conf) {
+    this.conf = conf;
+  }
 
-    // Print help when no args given
-    if (args.length < 1) {
-      System.err.println(usage);
-      System.exit(-1);
+  private void checkOne(String normalizerName, String scope) throws Exception {
+    URLNormalizer normalizer = null;
+
+    ExtensionPoint point = PluginRepository.get(conf).getExtensionPoint(
+        URLNormalizer.X_POINT_ID);
+
+    if (point == null)
+      throw new RuntimeException(URLNormalizer.X_POINT_ID + " not found.");
+
+    Extension[] extensions = point.getExtensions();
+
+    for (int i = 0; i < extensions.length; i++) {
+      Extension extension = extensions[i];
+      normalizer = (URLNormalizer) extension.getExtensionInstance();
+      if (normalizer.getClass().getName().equals(normalizerName)) {
+        break;
+      } else {
+        normalizer = null;
+      }
     }
 
-    int numConsumed;
+    if (normalizer == null)
+      throw new RuntimeException("URLNormalizer " + normalizerName
+          + " not found.");
+
+    System.out.println("Checking URLNormalizer " + normalizerName);
+
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+    String line;
+    while ((line = in.readLine()) != null) {
+      String out = normalizer.normalize(line, scope);
+      System.out.println(out);
+    }
+  }
+
+  private void checkAll(String scope) throws Exception {
+    System.out.println("Checking combination of all URLNormalizers available");
+
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+    String line;
+    URLNormalizers normalizers = new URLNormalizers(conf, scope);
+    while ((line = in.readLine()) != null) {
+      String out = normalizers.normalize(line, scope);
+      System.out.println(out);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+
+    String usage = "Usage: URLNormalizerChecker [-normalizer <normalizerName>] [-scope <scope>]"
+        + "\n\tscope can be one of: default,partition,generate_host_count,fetcher,crawldb,linkdb,inject,outlink";
+
+    String normalizerName = null;
+    String scope = URLNormalizers.SCOPE_DEFAULT;
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("-normalizer")) {
-        getConf().set("plugin.includes", args[++i]);
+        normalizerName = args[++i];
       } else if (args[i].equals("-scope")) {
         scope = args[++i];
-      } else if ((numConsumed = super.parseArgs(args, i)) > 0) {
-        i += numConsumed - 1;
       } else {
-        System.err.println("ERROR: Not a recognized argument: " + args[i]);
         System.err.println(usage);
         System.exit(-1);
       }
     }
 
-    // Print active normalizer list
-    normalizers = new URLNormalizers(getConf(), scope);
-    System.out.print("Checking combination of these URLNormalizers: ");
-    for (URLNormalizer normalizer : normalizers.getURLNormalizers(scope)) {
-      System.out.print(normalizer.getClass().getSimpleName() + " ");
+    URLNormalizerChecker checker = new URLNormalizerChecker(
+        NutchConfiguration.create());
+    if (normalizerName != null) {
+      checker.checkOne(normalizerName, scope);
+    } else {
+      checker.checkAll(scope);
     }
-    System.out.println("");
 
-    // Start listening
-    return super.run();
-  }
-
-  protected int process(String line, StringBuilder output) throws Exception {
-    try {
-      String norm = normalizers.normalize(line, scope);
-      if (norm == null) {
-        output.append("");
-      } else {
-        output.append(norm);
-      }
-    } catch (MalformedURLException e) {
-      output.append("");
-    }
-    return 0;
-  }
-
-  public static void main(String[] args) throws Exception {
-    final int res = ToolRunner.run(NutchConfiguration.create(),
-        new URLNormalizerChecker(), args);
-    System.exit(res);
+    System.exit(0);
   }
 }

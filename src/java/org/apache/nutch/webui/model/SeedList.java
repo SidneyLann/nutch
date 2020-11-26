@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -28,7 +28,6 @@ import javax.persistence.OneToMany;
 import org.apache.commons.collections4.CollectionUtils;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.j256.ormlite.field.ForeignCollectionField;
 
 @Entity
@@ -43,7 +42,6 @@ public class SeedList implements Serializable {
 
   @OneToMany
   @ForeignCollectionField(eager = true)
-  @JsonManagedReference
   private Collection<SeedUrl> seedUrls;
 
   public Long getId() {

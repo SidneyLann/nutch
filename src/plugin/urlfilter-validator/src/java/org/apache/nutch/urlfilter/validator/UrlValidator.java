@@ -25,13 +25,13 @@ import org.apache.nutch.net.URLFilter;
 /**
  * <p>
  * Validates URLs.
- * </p>
+ *
  * 
  * <p>
  * Originally based in on php script by Debbie Dyer, validation.php v1.2b, Date:
  * 03/07/02, http://javascript.internet.com. However, this validation now bears
  * little resemblance to the php original.
- * </p>
+ *
  * 
  * <pre>
  *   Example of usage:
@@ -47,9 +47,9 @@ import org.apache.nutch.net.URLFilter;
  * 
  * <p>
  * Based on UrlValidator code from Apache commons-validator.
- * </p>
+ *
  * 
- * @see <a href='https://www.ietf.org/rfc/rfc2396.txt' > Uniform Resource
+ * @see <a href='http://www.ietf.org/rfc/rfc2396.txt' > Uniform Resource
  *      Identifiers (URI): Generic Syntax </a>
  * 
  */
@@ -132,6 +132,15 @@ public class UrlValidator implements URLFilter {
 
   private Configuration conf;
 
+  private int maxTldLength;
+
+  private static String TOP_LEVEL_DOMAIN_LENGTH = "urlfilter.tld.length"; // maximum
+                                                                          // length
+                                                                          // of
+                                                                          // TLD
+
+  private static final int TOP_LEVEL_DOMAIN_LENGTH_VALUE = 8;
+
   public String filter(String urlString) {
     return isValid(urlString) ? urlString : null;
   }
@@ -142,12 +151,15 @@ public class UrlValidator implements URLFilter {
 
   public void setConf(Configuration conf) {
     this.conf = conf;
+    maxTldLength = conf.getInt(TOP_LEVEL_DOMAIN_LENGTH, 8);
+    if (maxTldLength <= 2)
+      maxTldLength = TOP_LEVEL_DOMAIN_LENGTH_VALUE;
   }
 
   /**
    * <p>
    * Checks if a field has a valid url address.
-   * </p>
+   *
    * 
    * @param value
    *          The value validation is being performed on. A <code>null</code>
@@ -277,7 +289,7 @@ public class UrlValidator implements URLFilter {
         segCount++;
       }
       String topLevel = domainSegment[segCount - 1];
-      if (topLevel.length() < 2) {
+      if (topLevel.length() < 2 || topLevel.length() > maxTldLength) {
         return false;
       }
 
@@ -311,7 +323,7 @@ public class UrlValidator implements URLFilter {
    * <p>
    * Checks if the field isn't null and length of the field is greater than zero
    * not including whitespace.
-   * </p>
+   *
    * 
    * @param value
    *          The value validation is being performed on.

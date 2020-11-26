@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,84 +16,82 @@
  */
 package org.apache.nutch.indexer.basic;
 
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
 import org.apache.nutch.indexer.NutchDocument;
-import org.apache.nutch.indexer.basic.BasicIndexingFilter;
-import org.apache.nutch.metadata.Metadata;
-import org.apache.nutch.parse.Outlink;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.parse.ParseImpl;
-import org.apache.nutch.parse.ParseStatus;
+import org.apache.nutch.metadata.Nutch;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Date;
+import java.nio.ByteBuffer;
+
+import static org.junit.Assert.*;
 
 /**
- * JUnit test case which tests 1. that basic searchable fields are added to a
- * document 2. that domain is added as per {@code indexer.add.domain} in
- * nutch-default.xml. 3. that title is truncated as per
- * {@code indexer.max.title.length} in nutch-default.xml. 4. that content is
- * truncated as per {@code indexer.max.content.length} in nutch-default.xml.
+ * JUnit test case which tests 1. that the host, url, content, title, cache and
+ * tstamp fields are obtained by the filter. 2. that configurable maximum length
+ * functionality for titles actually works. . This property defaults at 100
+ * characters @see {@code indexer.max.title.length} in nutch-default.xml but has
+ * been set to 10 for this test.
  * 
- * @author tejasp
- * 
+ * @author lewismc
  */
 
 public class TestBasicIndexingFilter {
 
   @Test
-  public void testBasicIndexingFilter() throws Exception {
+  public void testBasicFields() throws Exception {
     Configuration conf = NutchConfiguration.create();
-    conf.setInt("indexer.max.title.length", 10);
-    conf.setBoolean("indexer.add.domain", true);
-    conf.setInt("indexer.max.content.length", 20);
-
     BasicIndexingFilter filter = new BasicIndexingFilter();
     filter.setConf(conf);
-    Assert.assertNotNull(filter);
-
+    assertNotNull(filter);
     NutchDocument doc = new NutchDocument();
-
-    String title = "The Foo Page";
-    Outlink[] outlinks = new Outlink[] { new Outlink("http://foo.com/", "Foo") };
-    Metadata metaData = new Metadata();
-    metaData.add("Language", "en/us");
-    ParseData parseData = new ParseData(ParseStatus.STATUS_SUCCESS, title,
-        outlinks, metaData);
-    ParseImpl parse = new ParseImpl(
-        "this is a sample foo bar page. hope you enjoy it.", parseData);
-
-    CrawlDatum crawlDatum = new CrawlDatum();
-    crawlDatum.setFetchTime(100L);
-
-    Inlinks inlinks = new Inlinks();
-
+    WebPage page = WebPage.newBuilder().build();
+    page.getInlinks().put(new Utf8("http://nutch.apache.org/"),
+        new Utf8("Welcome to Nutch"));
+    page.setTitle(new Utf8("Welcome to Nutch"));
+    page.setReprUrl(new Utf8("http://www.urldoesnotmatter.org"));
+    byte[] bytes = new byte[10];
+    ByteBuffer bbuf = ByteBuffer.wrap(bytes);
+    page.getMetadata().put(Nutch.CACHING_FORBIDDEN_KEY_UTF8, bbuf);
+    page.setFetchTime(System.currentTimeMillis());
     try {
-      filter.filter(doc, parse, new Text("http://nutch.apache.org/index.html"),
-          crawlDatum, inlinks);
+      filter.filter(doc, "http://www.apache.org/", page);
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.fail(e.getMessage());
+      fail(e.getMessage());
     }
-    Assert.assertNotNull(doc);
-    Assert.assertEquals("test title, expect \"The Foo Pa\"", "The Foo Pa", doc
-        .getField("title").getValues().get(0));
-    Assert.assertEquals("test domain, expect \"apache.org\"", "apache.org", doc
-        .getField("domain").getValues().get(0));
-    Assert.assertEquals("test host, expect \"nutch.apache.org\"",
-        "nutch.apache.org", doc.getField("host").getValues().get(0));
-    Assert.assertEquals(
-        "test url, expect \"http://nutch.apache.org/index.html\"",
-        "http://nutch.apache.org/index.html", doc.getField("url").getValues()
-            .get(0));
-    Assert.assertEquals("test content", "this is a sample foo",
-        doc.getField("content").getValues().get(0));
-    Assert.assertEquals("test fetch time", new Date(100L),
-        (Date) doc.getField("tstamp").getValues().get(0));
+    assertNotNull(doc);
+    assertTrue("check for host field ", doc.getFieldNames().contains("host"));
+    assertTrue("check for url field", doc.getFieldNames().contains("url"));
+    assertTrue("check for content field",
+        doc.getFieldNames().contains("content"));
+    assertTrue("check for title field", doc.getFieldNames().contains("title"));
+    assertTrue("check for cache field", doc.getFieldNames().contains("cache"));
+    assertTrue("check for tstamp field", doc.getFieldNames().contains("tstamp"));
+  }
+
+  @Test
+  public void testTitleFieldLength() throws Exception {
+    Configuration conf = NutchConfiguration.create();
+    conf.setInt("indexer.max.title.length", 10);
+    BasicIndexingFilter filter = new BasicIndexingFilter();
+    filter.setConf(conf);
+    assertNotNull(filter);
+    NutchDocument doc = new NutchDocument();
+    WebPage page = WebPage.newBuilder().build();
+    page.getInlinks().put(new Utf8("http://exceedmaximumtitleurl.org/"),
+        new Utf8("exceeding title site"));
+    page.setTitle(new Utf8("This title exceeds maximum characters"));
+    try {
+      filter.filter(doc, "http://www.apache.org/", page);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail(e.getMessage());
+    }
+    assertNotNull(doc);
+    assertEquals("assert title field only has 10 characters", 10, doc
+        .getFieldValue("title").length());
   }
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,31 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.ftp;
 
+import java.lang.invoke.MethodHandles;
+import crawlercommons.robots.BaseRobotRules;
+import org.apache.commons.net.ftp.FTPFileEntryParser;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.protocols.Response;
+import org.apache.nutch.protocol.*;
+import org.apache.nutch.storage.ProtocolStatus;
+import org.apache.nutch.storage.WebPage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.commons.net.ftp.FTPFileEntryParser;
-
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.net.protocols.Response;
-
-import org.apache.hadoop.conf.Configuration;
-
-import org.apache.nutch.protocol.Content;
-import org.apache.nutch.metadata.Nutch;
-import org.apache.nutch.protocol.Protocol;
-import org.apache.nutch.protocol.ProtocolOutput;
-import org.apache.nutch.protocol.ProtocolStatus;
-import crawlercommons.robots.BaseRobotRules;
-
-import java.lang.invoke.MethodHandles;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
-import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.nio.charset.StandardCharsets;
 
 /**
  * This class is a protocol plugin used for ftp: scheme. It creates
@@ -53,7 +48,14 @@ public class Ftp implements Protocol {
   protected static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
-  private static final int BUFFER_SIZE = 16384; // 16*1024 = 16384
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.MODIFIED_TIME);
+    FIELDS.add(WebPage.Field.HEADERS);
+  }
+
+  static final int BUFFER_SIZE = 16384; // 16*1024 = 16384
 
   static final int MAX_REDIRECTS = 5;
 
@@ -115,26 +117,22 @@ public class Ftp implements Protocol {
    * 
    * @param url
    *          Text containing the ftp url
-   * @param datum
-   *          The CrawlDatum object corresponding to the url
+   * @param page
+   *          {@link WebPage} object relative to the URL
    * 
    * @return {@link ProtocolOutput} object for the url
    */
-  public ProtocolOutput getProtocolOutput(Text url, CrawlDatum datum) {
-    String urlString = url.toString();
+  public ProtocolOutput getProtocolOutput(String url, WebPage page) {
     try {
-      URL u = new URL(urlString);
+      URL u = new URL(url);
 
       int redirects = 0;
 
       while (true) {
         FtpResponse response;
-        response = new FtpResponse(u, datum, this, getConf()); // make a request
+        response = new FtpResponse(u, page, this, getConf()); // make a request
 
         int code = response.getCode();
-        datum.getMetaData().put(Nutch.PROTOCOL_STATUS_CODE_KEY,
-          new Text(Integer.toString(code)));
-        
 
         if (code == 200) { // got a good response
           return new ProtocolOutput(response.toContent()); // return it
@@ -148,7 +146,9 @@ public class Ftp implements Protocol {
             u = new URL(u, loc);
           } catch (MalformedURLException mue) {
             LOG.error("Could not create redirectURL for {} with {}", url, loc);
-            return new ProtocolOutput(null, new ProtocolStatus(mue));
+            ProtocolStatus ps = ProtocolStatusUtils.makeStatus(
+                ProtocolStatusCodes.EXCEPTION, mue.toString());
+            return new ProtocolOutput(null, ps);
           }
           
           redirects++;
@@ -162,7 +162,9 @@ public class Ftp implements Protocol {
     } catch (Exception e) {
       LOG.error("Could not get protocol output for {}: {}", url,
           e.getMessage());
-      return new ProtocolOutput(null, new ProtocolStatus(e));
+      ProtocolStatus ps = ProtocolStatusUtils.makeStatus(
+          ProtocolStatusCodes.EXCEPTION, e.toString());
+      return new ProtocolOutput(null, ps);
     }
   }
 
@@ -177,11 +179,32 @@ public class Ftp implements Protocol {
     }
   }
 
+  /**
+   * Set the {@link Configuration} object
+   */
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+    this.maxContentLength = conf.getInt("ftp.content.limit", 64 * 1024);
+    this.timeout = conf.getInt("ftp.timeout", 10000);
+    this.userName = conf.get("ftp.username", "anonymous");
+    this.passWord = conf.get("ftp.password", "anonymous@example.com");
+    this.serverTimeout = conf.getInt("ftp.server.timeout", 60 * 1000);
+    this.keepConnection = conf.getBoolean("ftp.keep.connection", false);
+    this.followTalk = conf.getBoolean("ftp.follow.talk", false);
+    this.robots.setConf(conf);
+  }
+
+  /**
+   * Get the {@link Configuration} object
+   */
+  public Configuration getConf() {
+    return this.conf;
+  }
+
   /** For debugging. */
   public static void main(String[] args) throws Exception {
     int timeout = Integer.MIN_VALUE;
     int maxContentLength = Integer.MIN_VALUE;
-    @SuppressWarnings("unused")
     String logLevel = "info";
     boolean followTalk = false;
     boolean keepConnection = false;
@@ -227,11 +250,8 @@ public class Ftp implements Protocol {
     if (maxContentLength != Integer.MIN_VALUE) // set maxContentLength
       ftp.setMaxContentLength(maxContentLength);
 
-    // set log level
-    // LOG.setLevel(Level.parse((new String(logLevel)).toUpperCase()));
-
-    Content content = ftp.getProtocolOutput(new Text(urlString),
-        new CrawlDatum()).getContent();
+    Content content = ftp.getProtocolOutput(urlString,
+        WebPage.newBuilder().build()).getContent();
 
     System.err.println("Content-Type: " + content.getContentType());
     System.err.println("Content-Length: "
@@ -239,45 +259,20 @@ public class Ftp implements Protocol {
     System.err.println("Last-Modified: "
         + content.getMetadata().get(Response.LAST_MODIFIED));
     if (dumpContent) {
-      System.out.print(new String(content.getContent()));
+      System.out.print(new String(content.getContent(), StandardCharsets.UTF_8));
     }
 
     ftp = null;
   }
 
-  /**
-   * Set the {@link Configuration} object
-   */
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-    this.maxContentLength = conf.getInt("ftp.content.limit", 1024 * 1024);
-    this.timeout = conf.getInt("ftp.timeout", 10000);
-    this.userName = conf.get("ftp.username", "anonymous");
-    this.passWord = conf.get("ftp.password", "anonymous@example.com");
-    this.serverTimeout = conf.getInt("ftp.server.timeout", 60 * 1000);
-    this.keepConnection = conf.getBoolean("ftp.keep.connection", false);
-    this.followTalk = conf.getBoolean("ftp.follow.talk", false);
-    this.robots.setConf(conf);
-  }
-
-  /**
-   * Get the {@link Configuration} object
-   */
-  public Configuration getConf() {
-    return this.conf;
+  public Collection<WebPage.Field> getFields() {
+    return FIELDS;
   }
 
   /**
    * Get the robots rules for a given url
    */
-  @Override
-  public BaseRobotRules getRobotRules(Text url, CrawlDatum datum,
-      List<Content> robotsTxtContent) {
-    return robots.getRobotRulesSet(this, url, robotsTxtContent);
+  public BaseRobotRules getRobotRules(String url, WebPage page) {
+    return robots.getRobotRulesSet(this, url);
   }
-
-  public int getBufferSize() {
-    return BUFFER_SIZE;
-  }
-
 }

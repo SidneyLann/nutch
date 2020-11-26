@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -49,7 +49,7 @@ public class SeedListsPage extends AbstractBasePage<Void> {
 
       @Override
       protected Iterator<IModel<SeedList>> getItemModels() {
-        return new CpmIteratorAdapter<>(seedListService.findAll());
+        return new CpmIteratorAdapter<SeedList>(seedListService.findAll());
       }
 
       @Override
@@ -57,7 +57,7 @@ public class SeedListsPage extends AbstractBasePage<Void> {
         PageParameters params = new PageParameters();
         params.add("id", item.getModelObject().getId());
 
-        Link<Void> edit = new BookmarkablePageLink<>("edit",
+        Link<Void> edit = new BookmarkablePageLink<Void>("edit",
             SeedPage.class, params);
         edit.add(new Label("name"));
         item.add(edit);

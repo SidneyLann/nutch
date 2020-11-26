@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
-import java.net.IDN;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
+import java.net.*;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.apache.nutch.util.domain.DomainSuffix;
@@ -130,46 +130,6 @@ public class URLUtil {
   }
 
   /**
-   * Returns the top level domain name of the url. The top level domain name of
-   * a url is the substring of the url's hostname, w/o subdomain names. As an
-   * example <br>
-   * <code>
-   *  getTopLevelDomainName(conf, new http://lucene.apache.org/)
-   *  </code><br>
-   * will return <br>
-   * <code> org</code>
-   * 
-   * @throws MalformedURLException
-   */
-  public static String getTopLevelDomainName(URL url)
-      throws MalformedURLException {
-    String suffix = getDomainSuffix(url).toString();
-    int idx = suffix.lastIndexOf(".");
-    if (idx != -1) {
-      return suffix.substring(idx + 1);
-    } else {
-      return suffix;
-    }
-  }
-
-  /**
-   * Returns the top level domain name of the url. The top level domain name of
-   * a url is the substring of the url's hostname, w/o subdomain names. As an
-   * example <br>
-   * <code>
-   *  getTopLevelDomainName(conf, new http://lucene.apache.org/)
-   *  </code><br>
-   * will return <br>
-   * <code> org</code>
-   * 
-   * @throws MalformedURLException
-   */
-  public static String getTopLevelDomainName(String url)
-      throws MalformedURLException {
-    return getTopLevelDomainName(new URL(url));
-  }
-
-  /**
    * Returns whether the given urls have the same domain name. As an example, <br>
    * <code> isSameDomain(new URL("http://lucene.apache.org")
    * , new URL("http://people.apache.org/"))
@@ -229,7 +189,7 @@ public class URLUtil {
   }
 
   /** Partitions of the hostname of the url by "." */
-  public static String[] getHostSegments(URL url) {
+  public static String[] getHostBatches(URL url) {
     String host = url.getHost();
     // return whole hostname, if it is an ipv4
     // TODO : handle ipv6
@@ -243,49 +203,65 @@ public class URLUtil {
    * 
    * @throws MalformedURLException
    */
-  public static String[] getHostSegments(String url)
+  public static String[] getHostBatches(String url)
       throws MalformedURLException {
-    return getHostSegments(new URL(url));
+    return getHostBatches(new URL(url));
   }
 
   /**
+   * <p>
    * Given two urls, a src and a destination of a redirect, it returns the
    * representative url.
    * <p>
+   * 
+   * <p>
    * This method implements an extended version of the algorithm used by the
    * Yahoo! Slurp crawler described here:<br>
-   * <a href="http://help.yahoo.com/l/nz/yahooxtra/search/webcrawler/slurp-11.html"> How
-   * does the Yahoo! webcrawler handle redirects?</a> <br>
+   * <a href=
+   * "http://help.yahoo.com/l/nz/yahooxtra/search/webcrawler/slurp-11.html"> How
+   * does the Yahoo! webcrawler handle redirects?</a>
    * <br>
-   * <ul>
-   * <li>Choose target url if either url is malformed.</li>
-   * <li>If different domains the keep the destination whether or not the
-   * redirect is temp or perm</li>
-   * <li>a.com -&gt; b.com*</li>
-   * <li>If the redirect is permanent and the source is root, keep the source.</li>
-   * <li>*a.com -&gt; a.com?y=1 || *a.com -&gt; a.com/xyz/index.html</li>
-   * <li>If the redirect is permanent and the source is not root and the
-   * destination is root, keep the destination</li>
-   * <li>a.com/xyz/index.html -&gt; a.com*</li>
-   * <li>If the redirect is permanent and neither the source nor the destination
-   * is root, then keep the destination</li>
-   * <li>a.com/xyz/index.html -&gt; a.com/abc/page.html*</li>
-   * <li>If the redirect is temporary and source is root and destination is not
-   * root, then keep the source</li>
-   * <li>*a.com -&gt; a.com/xyz/index.html</li>
-   * <li>If the redirect is temporary and source is not root and destination is
-   * root, then keep the destination</li>
-   * <li>a.com/xyz/index.html -&gt; a.com*</li>
-   * <li>If the redirect is temporary and neither the source or the destination
+   *
+   * <dl>
+   *
+   * <dt>Choose target url if either url is malformed.</dt>
+   *
+   * <dt>If different domains the keep the destination whether or not the
+   * redirect is temp or perm</dt>
+   * <dd>a.com -&gt; b.com*</dd>
+   *
+   * <dt>If the redirect is permanent and the source is root, keep the source.</dt>
+   * <dd>*a.com -&gt; a.com?y=1 || *a.com -&gt; a.com/xyz/index.html</dd>
+   *
+   * <dt>If the redirect is permanent and the source is not root and the
+   * destination is root, keep the destination</dt>
+   * <dd>a.com/xyz/index.html -&gt; a.com*</dd>
+   *
+   * <dt>If the redirect is permanent and neither the source nor the destination
+   * is root, then keep the destination</dt>
+   * <dd>a.com/xyz/index.html -&gt; a.com/abc/page.html*</dd>
+   *
+   * <dt>If the redirect is temporary and source is root and destination is not
+   * root, then keep the source</dt>
+   * <dd>*a.com -&gt; a.com/xyz/index.html</dd>
+   *
+   * <dt>If the redirect is temporary and source is not root and destination is
+   * root, then keep the destination</dt>
+   * <dd>a.com/xyz/index.html -&gt; a.com*</dd>
+   *
+   * <dt>If the redirect is temporary and neither the source or the destination
    * is root, then keep the shortest url. First check for the shortest host, and
    * if both are equal then check by path. Path is first by length then by the
-   * number of / path separators.</li>
-   * <li>a.com/xyz/index.html -&gt; a.com/abc/page.html*</li>
-   * <li>*www.a.com/xyz/index.html -&gt; www.news.a.com/xyz/index.html</li>
-   * <li>If the redirect is temporary and both the source and the destination
-   * are root, then keep the shortest sub-domain</li>
-   * <li>*www.a.com -&gt; www.news.a.com</li>
-   * </ul>
+   * number of / path separators.</dt>
+   * <dd>a.com/xyz/index.html -&gt; a.com/abc/page.html*</dd>
+   * <dd>*www.a.com/xyz/index.html -&gt; www.news.a.com/xyz/index.html</dd>
+   *
+   * <dt>If the redirect is temporary and both the source and the destination
+   * are root, then keep the shortest sub-domain</dt>
+   * <dd>*www.a.com -&gt; www.news.a.com</dd>
+   *
+   * </dl>
+   *
    * <br>
    * While not in this logic there is a further piece of representative url
    * logic that occurs during indexing and after scoring. During creation of the
@@ -408,7 +384,7 @@ public class URLUtil {
    */
   public static String getHost(String url) {
     try {
-      return new URL(url).getHost().toLowerCase();
+      return new URL(url).getHost().toLowerCase(Locale.ROOT);
     } catch (MalformedURLException e) {
       return null;
     }
@@ -426,24 +402,12 @@ public class URLUtil {
   public static String getPage(String url) {
     try {
       // get the full url, and replace the query string with and empty string
-      url = url.toLowerCase();
+      url = url.toLowerCase(Locale.ROOT);
       String queryStr = new URL(url).getQuery();
       return (queryStr != null) ? url.replace("?" + queryStr, "") : url;
     } catch (MalformedURLException e) {
       return null;
     }
-  }
-
-  public static String getProtocol(String url) {
-    try {
-      return getProtocol(new URL(url));
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  public static String getProtocol(URL url) {
-    return url.getProtocol();
   }
 
   public static String toASCII(String url) {
@@ -509,7 +473,7 @@ public class URLUtil {
     try {
       System.out.println(URLUtil.getDomainName(new URL(url)));
     } catch (MalformedURLException ex) {
-      ex.printStackTrace();
+      System.err.println(ex.getMessage());
     }
   }
 }

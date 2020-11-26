@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
-import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /** Unit tests for PrefixStringMatcher. */
 public class TestPrefixStringMatcher {
@@ -90,17 +91,15 @@ public class TestPrefixStringMatcher {
 
         numInputsTested++;
 
-        Assert.assertTrue("'" + input + "' should " + (matches ? "" : "not ")
+        assertTrue("'" + input + "' should " + (matches ? "" : "not ")
             + "match!", matches == prematcher.matches(input));
         if (matches) {
-          Assert.assertTrue(shortestMatch == prematcher.shortestMatch(input)
-              .length());
-          Assert.assertTrue(input.substring(0, shortestMatch).equals(
+          assertTrue(shortestMatch == prematcher.shortestMatch(input).length());
+          assertTrue(input.substring(0, shortestMatch).equals(
               prematcher.shortestMatch(input)));
 
-          Assert.assertTrue(longestMatch == prematcher.longestMatch(input)
-              .length());
-          Assert.assertTrue(input.substring(0, longestMatch).equals(
+          assertTrue(longestMatch == prematcher.longestMatch(input).length());
+          assertTrue(input.substring(0, longestMatch).equals(
               prematcher.longestMatch(input)));
 
         }

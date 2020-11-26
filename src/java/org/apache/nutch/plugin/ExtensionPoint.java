@@ -36,7 +36,7 @@ public class ExtensionPoint {
    * @param pId
    *          unique extension point Id
    * @param pName
-   *          name of the extension point
+   *          name of the extension poin
    * @param pSchema
    *          xml schema of the extension point
    */
@@ -44,7 +44,7 @@ public class ExtensionPoint {
     setId(pId);
     setName(pName);
     setSchema(pSchema);
-    fExtensions = new ArrayList<>();
+    fExtensions = new ArrayList<Extension>();
   }
 
   /**
@@ -103,7 +103,7 @@ public class ExtensionPoint {
   }
 
   /**
-   * Install a coresponding extension to this extension point.
+   * Install a corresponding extension to this extension point.
    * 
    * @param extension
    */
@@ -112,7 +112,7 @@ public class ExtensionPoint {
   }
 
   /**
-   * Returns a array of extensions that lsiten to this extension point
+   * Returns a array of extensions that listen to this extension point
    * 
    * @return Extension[]
    */

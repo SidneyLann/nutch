@@ -1,4 +1,5 @@
 /*
+ /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -19,23 +20,27 @@ package org.apache.nutch.plugin;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Properties;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.nutch.util.NutchConfiguration;
-import org.apache.nutch.util.NutchJob;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.nutch.util.NutchConfiguration;
+import org.apache.nutch.util.NutchJobConf;
 
 /**
  * Unit tests for the plugin system
+ * 
+ * @author joa23
  */
 public class TestPluginSystem {
   private int fPluginCount;
@@ -55,22 +60,18 @@ public class TestPluginSystem {
     this.repository = PluginRepository.get(conf);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see junit.framework.TestCase#tearDown()
-   */
   @After
   public void tearDown() throws Exception {
     for (int i = 0; i < fFolders.size(); i++) {
-      File folder = fFolders.get(i);
+      File folder = (File) fFolders.get(i);
       delete(folder);
       folder.delete();
     }
+
   }
 
   /**
-   */
+     */
   @Test
   public void testPluginConfiguration() {
     String string = getPluginFolder();
@@ -78,60 +79,58 @@ public class TestPluginSystem {
     if (!file.exists()) {
       file.mkdir();
     }
-    Assert.assertTrue(file.exists());
+    assertTrue(file.exists());
   }
 
   /**
-   */
+     */
   @Test
   public void testLoadPlugins() {
     PluginDescriptor[] descriptors = repository.getPluginDescriptors();
     int k = descriptors.length;
-    Assert.assertTrue(fPluginCount <= k);
+    assertTrue(fPluginCount <= k);
     for (int i = 0; i < descriptors.length; i++) {
       PluginDescriptor descriptor = descriptors[i];
       if (!descriptor.getPluginId().startsWith("getPluginFolder()")) {
         continue;
       }
-      Assert.assertEquals(1, descriptor.getExportedLibUrls().length);
-      Assert.assertEquals(1, descriptor.getNotExportedLibUrls().length);
+      assertEquals(1, descriptor.getExportedLibUrls().length);
+      assertEquals(1, descriptor.getNotExportedLibUrls().length);
     }
   }
 
   @Test
-  public void testRepositoryCache() throws IOException {
+  public void testRepositoryCache() {
     Configuration config = NutchConfiguration.create();
     PluginRepository repo = PluginRepository.get(config);
-    Job job = NutchJob.getInstance(config);
-    config = job.getConfiguration();
-    PluginRepository repo1 = PluginRepository.get(config);
-    Assert.assertTrue(repo == repo1);
+    JobConf job = new NutchJobConf(config);
+    PluginRepository repo1 = PluginRepository.get(job);
+    assertTrue(repo == repo1);
     // now construct a config without UUID
     config = new Configuration();
     config.addResource("nutch-default.xml");
     config.addResource("nutch-site.xml");
     repo = PluginRepository.get(config);
-    job = NutchJob.getInstance(config);
-    config = job.getConfiguration();
-    repo1 = PluginRepository.get(config);
-    Assert.assertTrue(repo1 != repo);
+    job = new NutchJobConf(config);
+    repo1 = PluginRepository.get(job);
+    assertTrue(repo1 != repo);
   }
 
   /**
-   *  
-   */
+     *  
+     */
   @Test
   public void testGetExtensionAndAttributes() {
     String xpId = " sdsdsd";
     ExtensionPoint extensionPoint = repository.getExtensionPoint(xpId);
-    Assert.assertEquals(extensionPoint, null);
+    assertEquals(extensionPoint, null);
     Extension[] extension1 = repository.getExtensionPoint(getGetExtensionId())
         .getExtensions();
-    Assert.assertEquals(extension1.length, fPluginCount);
+    assertEquals(extension1.length, fPluginCount);
     for (int i = 0; i < extension1.length; i++) {
       Extension extension2 = extension1[i];
       String string = extension2.getAttribute(getGetConfigElementName());
-      Assert.assertEquals(string, getParameterValue());
+      assertEquals(string, getParameterValue());
     }
   }
 
@@ -142,28 +141,28 @@ public class TestPluginSystem {
   public void testGetExtensionInstances() throws PluginRuntimeException {
     Extension[] extensions = repository.getExtensionPoint(getGetExtensionId())
         .getExtensions();
-    Assert.assertEquals(extensions.length, fPluginCount);
+    assertEquals(extensions.length, fPluginCount);
     for (int i = 0; i < extensions.length; i++) {
       Extension extension = extensions[i];
       Object object = extension.getExtensionInstance();
       if (!(object instanceof HelloWorldExtension))
-        Assert.fail(" object is not a instance of HelloWorldExtension");
+        fail(" object is not a instance of HelloWorldExtension");
       ((ITestExtension) object).testGetExtension("Bla ");
       String string = ((ITestExtension) object).testGetExtension("Hello");
-      Assert.assertEquals("Hello World", string);
+      assertEquals("Hello World", string);
     }
   }
 
   /**
-   * 
-   *  
-   */
+     * 
+     *  
+     */
   @Test
   public void testGetClassLoader() {
     PluginDescriptor[] descriptors = repository.getPluginDescriptors();
     for (int i = 0; i < descriptors.length; i++) {
       PluginDescriptor descriptor = descriptors[i];
-      Assert.assertNotNull(descriptor.getClassLoader());
+      assertNotNull(descriptor.getClassLoader());
     }
   }
 
@@ -179,9 +178,9 @@ public class TestPluginSystem {
         continue;
       }
       String value = descriptor.getResourceString("key", Locale.UK);
-      Assert.assertEquals("value", value);
+      assertEquals("value", value);
       value = descriptor.getResourceString("key", Locale.TRADITIONAL_CHINESE);
-      Assert.assertEquals("value", value);
+      assertEquals("value", value);
 
     }
   }
@@ -192,7 +191,7 @@ public class TestPluginSystem {
   private String getPluginFolder() {
     String[] strings = conf.getStrings("plugin.folders");
     if (strings == null || strings.length == 0)
-      Assert.fail("no plugin directory setuped..");
+      fail("no plugin directory setuped..");
 
     String name = strings[0];
     return new PluginManifestParser(conf, this.repository)
@@ -261,7 +260,8 @@ public class TestPluginSystem {
    */
   private void createPluginManifest(int i, String pFolderPath)
       throws IOException {
-    FileWriter out = new FileWriter(pFolderPath + File.separator + "plugin.xml");
+    OutputStreamWriter osw = new OutputStreamWriter(
+        new FileOutputStream(pFolderPath + File.separator + "plugin.xml"), StandardCharsets.UTF_8);
     String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<!--this is just a simple plugin for testing issues.-->"
         + "<plugin id=\"org.apache.nutch.plugin."
@@ -280,9 +280,9 @@ public class TestPluginSystem {
         + "id=\"aExtensionId.\" class=\"org.apache.nutch.plugin.HelloWorldExtension\">"
         + "<parameter name=\"dummy-name\" value=\"a simple param value\"/>"
         + "</implementation></extension></plugin>";
-    out.write(xml);
-    out.flush();
-    out.close();
+    osw.write(xml);
+    osw.flush();
+    osw.close();
   }
 
   private String getParameterValue() {

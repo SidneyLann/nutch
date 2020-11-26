@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,52 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse.tika;
 
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-
+import org.apache.avro.util.Utf8;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.parse.Parse;
 import org.apache.nutch.parse.ParseException;
+import org.apache.nutch.parse.ParseUtil;
 import org.apache.nutch.protocol.ProtocolException;
-import org.junit.Assert;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.MimeUtil;
+import org.apache.nutch.util.NutchConfiguration;
 import org.junit.Test;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for OOParser.
+ * 
+ * @author Andrzej Bialecki
  */
-public class TestOOParser extends TikaParserTest {
+public class TestOOParser {
 
+  private String fileSeparator = System.getProperty("file.separator");
+  // This system property is defined in ./src/plugin/build-plugin.xml
+  private String sampleDir = System.getProperty("test.data", ".");
   // Make sure sample files are copied to "test.data" as specified in
-  // ./src/plugin/parse-tika/build.xml during plugin compilation.
+  // ./src/plugin/parse-oo/build.xml during plugin compilation.
   private String[] sampleFiles = { "ootest.odt", "ootest.sxw" };
-
-  private String expectedText;
 
   private String sampleText = "ootest.txt";
 
+  private String expectedText;
+
   @Test
-  public void testIt() throws ProtocolException, ParseException {
+  public void testIt() throws ProtocolException, ParseException, IOException {
+    String urlString;
+    Parse parse;
+    Configuration conf = NutchConfiguration.create();
+    MimeUtil mimeutil = new MimeUtil(conf);
 
-    System.out.println("Expected : " + expectedText);
-
-    for (int i = 0; i < sampleFiles.length; i++) {
- 
-      if (sampleFiles[i].startsWith("ootest") == false)
-        continue;
-
-      String text = getTextContent(sampleFiles[i]).replaceAll("[ \t\r\n]+", " ")
-          .trim();
-
-      // simply test for the presence of a text - the ordering of the elements
-      // may differ from what was expected
-      // in the previous tests
-      Assert.assertTrue(text != null && text.length() > 0);
-
-      System.out.println("Found " + sampleFiles[i] + ": " + text);
-    }
-  }
-
-  public TestOOParser() {
     try {
       // read the test string
       FileInputStream fis = new FileInputStream(sampleDir + fileSeparator
@@ -77,6 +75,39 @@ public class TestOOParser extends TikaParserTest {
       expectedText = expectedText.replaceAll("[ \t\r\n]+", " ");
     } catch (Exception e) {
       e.printStackTrace();
+    }
+
+    System.out.println("Expected : " + expectedText);
+
+    for (int i = 0; i < sampleFiles.length; i++) {
+      urlString = "file:" + sampleDir + fileSeparator + sampleFiles[i];
+
+      if (sampleFiles[i].startsWith("ootest") == false)
+        continue;
+
+      File file = new File(sampleDir + fileSeparator + sampleFiles[i]);
+      byte[] bytes = new byte[(int) file.length()];
+      DataInputStream in = new DataInputStream(new FileInputStream(file));
+      in.readFully(bytes);
+      in.close();
+
+      WebPage page = WebPage.newBuilder().build();
+      page.setBaseUrl(new Utf8(urlString));
+      page.setContent(ByteBuffer.wrap(bytes));
+      String mtype = mimeutil.getMimeType(file);
+      page.setContentType(new Utf8(mtype));
+
+      parse = new ParseUtil(conf).parse(urlString, page);
+
+      String text = parse.getText().replaceAll("[ \t\r\n]+", " ").trim();
+
+      // simply test for the presence of a text - the ordering of the
+      // elements
+      // may differ from what was expected
+      // in the previous tests
+      assertTrue(text != null && text.length() > 0);
+
+      System.out.println("Found " + sampleFiles[i] + ": " + text);
     }
   }
 

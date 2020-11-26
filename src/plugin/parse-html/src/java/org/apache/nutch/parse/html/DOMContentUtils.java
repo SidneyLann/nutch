@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse.html;
 
 import java.net.URL;
@@ -21,18 +22,14 @@ import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Locale;
 
 import org.apache.nutch.parse.Outlink;
 import org.apache.nutch.util.NodeWalker;
 import org.apache.nutch.util.URLUtil;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.Text;
+
+import org.w3c.dom.*;
 
 /**
  * A collection of methods for extracting content from DOM trees.
@@ -42,10 +39,6 @@ import org.apache.hadoop.io.Text;
  * 
  */
 public class DOMContentUtils {
-  
-  private String srcTagMetaName;
-  private boolean keepNodenames;
-  private Set<String> blockNodes;
 
   public static class LinkParams {
     public String elName;
@@ -64,7 +57,6 @@ public class DOMContentUtils {
   }
 
   private HashMap<String, LinkParams> linkParams = new HashMap<String, LinkParams>();
-  private Configuration conf;
 
   public DOMContentUtils(Configuration conf) {
     setConf(conf);
@@ -74,7 +66,6 @@ public class DOMContentUtils {
     // forceTags is used to override configurable tag ignoring, later on
     Collection<String> forceTags = new ArrayList<String>(1);
 
-    this.conf = conf;
     linkParams.clear();
     linkParams.put("a", new LinkParams("a", "href", 1));
     linkParams.put("area", new LinkParams("area", "href", 0));
@@ -88,7 +79,6 @@ public class DOMContentUtils {
     linkParams.put("script", new LinkParams("script", "src", 0));
     linkParams.put("link", new LinkParams("link", "href", 0));
     linkParams.put("img", new LinkParams("img", "src", 0));
-    linkParams.put("source", new LinkParams("source", "src", 0));
 
     // remove unwanted link tags from the linkParams map
     String[] ignoreTags = conf.getStrings("parser.html.outlinks.ignore_tags");
@@ -96,30 +86,24 @@ public class DOMContentUtils {
       if (!forceTags.contains(ignoreTags[i]))
         linkParams.remove(ignoreTags[i]);
     }
-    
-    //NUTCH-2433 - Should we keep the html node where the outlinks are found?
-    srcTagMetaName = this.conf
-        .get("parser.html.outlinks.htmlnode_metadata_name");
-    keepNodenames = (srcTagMetaName != null && srcTagMetaName.length() > 0);
-    blockNodes = new HashSet<>(conf.getTrimmedStringCollection("parser.html.line.separators"));
   }
 
   /**
-   * This method takes a {@link StringBuffer} and a DOM {@link Node}, and will
+   * This method takes a {@link StringBuilder} and a DOM {@link Node}, and will
    * append all the content text found beneath the DOM node to the
-   * <code>StringBuffer</code>.
+   * <code>StringBuilder</code>.
    * 
    * <p>
    * 
    * If <code>abortOnNestedAnchors</code> is true, DOM traversal will be aborted
-   * and the <code>StringBuffer</code> will not contain any text encountered
+   * and the <code>StringBuilder</code> will not contain any text encountered
    * after a nested anchor is found.
    * 
    * <p>
    * 
    * @return true if nested anchors were found
    */
-  public boolean getText(StringBuffer sb, Node node,
+  public boolean getText(StringBuilder sb, Node node,
       boolean abortOnNestedAnchors) {
     if (getTextHelper(sb, node, abortOnNestedAnchors, 0)) {
       return true;
@@ -129,16 +113,16 @@ public class DOMContentUtils {
 
   /**
    * This is a convinience method, equivalent to
-   * {@link #getText(StringBuffer,Node,boolean) getText(sb, node, false)}.
+   * {@link #getText(StringBuilder, Node, boolean)} which passes false as third argument
    * 
    */
-  public void getText(StringBuffer sb, Node node) {
+  public void getText(StringBuilder sb, Node node) {
     getText(sb, node, false);
   }
 
   // returns true if abortOnNestedAnchors is true and we find nested
   // anchors
-  private boolean getTextHelper(StringBuffer sb, Node node,
+  private boolean getTextHelper(StringBuilder sb, Node node,
       boolean abortOnNestedAnchors, int anchorDepth) {
     boolean abort = false;
     NodeWalker walker = new NodeWalker(node);
@@ -148,13 +132,6 @@ public class DOMContentUtils {
       Node currentNode = walker.nextNode();
       String nodeName = currentNode.getNodeName();
       short nodeType = currentNode.getNodeType();
-      Node previousSibling = currentNode.getPreviousSibling();
-      if (previousSibling != null
-          && blockNodes.contains(previousSibling.getNodeName().toLowerCase())) {
-        appendParagraphSeparator(sb);
-      } else if (blockNodes.contains(nodeName.toLowerCase())) {
-        appendParagraphSeparator(sb);
-      }
 
       if ("script".equalsIgnoreCase(nodeName)) {
         walker.skipChildren();
@@ -190,14 +167,14 @@ public class DOMContentUtils {
   }
 
   /**
-   * Conditionally append a paragraph/line break to StringBuffer unless last
+   * Conditionally append a paragraph/line break to StringBuilder unless last
    * character a already indicates a paragraph break. Also remove trailing space
    * before paragraph break.
    *
    * @param buffer
-   *          StringBuffer to append paragraph break
+   *          StringBuilder to append paragraph break
    */
-  private void appendParagraphSeparator(StringBuffer buffer) {
+  private void appendParagraphSeparator(StringBuilder buffer) {
     if (buffer.length() == 0) {
       return;
     }
@@ -215,13 +192,13 @@ public class DOMContentUtils {
   }
 
   /**
-   * Conditionally append a space to StringBuffer unless last character is a
+   * Conditionally append a space to StringBuilder unless last character is a
    * space or line/paragraph break.
    *
    * @param buffer
-   *          StringBuffer to append space
+   *          StringBuilder to append space
    */
-  private void appendSpace(StringBuffer buffer) {
+  private void appendSpace(StringBuilder buffer) {
     if (buffer.length() == 0) {
       return;
     }
@@ -232,13 +209,13 @@ public class DOMContentUtils {
   }
 
   /**
-   * This method takes a {@link StringBuffer} and a DOM {@link Node}, and will
+   * This method takes a {@link StringBuilder} and a DOM {@link Node}, and will
    * append the content text found beneath the first <code>title</code> node to
-   * the <code>StringBuffer</code>.
+   * the <code>StringBuilder</code>.
    * 
    * @return true if a title node was found, false otherwise
    */
-  public boolean getTitle(StringBuffer sb, Node node) {
+  public boolean getTitle(StringBuilder sb, Node node) {
 
     NodeWalker walker = new NodeWalker(node);
 
@@ -264,7 +241,7 @@ public class DOMContentUtils {
   }
 
   /** If Node contains a BASE tag then it's HREF is returned. */
-  public String getBase(Node node) {
+  public URL getBase(Node node) {
 
     NodeWalker walker = new NodeWalker(node);
 
@@ -286,7 +263,10 @@ public class DOMContentUtils {
           for (int i = 0; i < attrs.getLength(); i++) {
             Node attr = attrs.item(i);
             if ("href".equalsIgnoreCase(attr.getNodeName())) {
-              return attr.getNodeValue();
+              try {
+                return new URL(attr.getNodeValue());
+              } catch (MalformedURLException e) {
+              }
             }
           }
         }
@@ -384,44 +364,13 @@ public class DOMContentUtils {
 
       if (nodeType == Node.ELEMENT_NODE) {
 
-        nodeName = nodeName.toLowerCase();
-        LinkParams params = (LinkParams) linkParams.get(nodeName);
+        nodeName = nodeName.toLowerCase(Locale.ROOT);
+        LinkParams params = linkParams.get(nodeName);
         if (params != null) {
           if (!shouldThrowAwayLink(currentNode, children, childLen, params)) {
 
-            StringBuffer linkText = new StringBuffer();
+            StringBuilder linkText = new StringBuilder();
             getText(linkText, currentNode, true);
-            if (linkText.toString().trim().length() == 0) {
-              // try harder - use img alt if present
-              NodeWalker subWalker = new NodeWalker(currentNode);
-              while (subWalker.hasNext()) {
-                Node subNode = subWalker.nextNode();
-                if (subNode.getNodeType() == Node.ELEMENT_NODE) {
-                  if (subNode.getNodeName().toLowerCase().equals("img")) {
-                    NamedNodeMap subAttrs = subNode.getAttributes();
-                    Node alt = subAttrs.getNamedItem("alt");
-                    if (alt != null) {
-                      String altTxt = alt.getTextContent();
-                      if (altTxt != null && altTxt.trim().length() > 0) {
-                        if (linkText.length() > 0)
-                          linkText.append(' ');
-                        linkText.append(altTxt);
-                      }
-                    }
-                  } else {
-                    // ignore other types of elements
-
-                  }
-                } else if (subNode.getNodeType() == Node.TEXT_NODE) {
-                  String txt = subNode.getTextContent();
-                  if (txt != null && txt.length() > 0) {
-                    if (linkText.length() > 0)
-                      linkText.append(' ');
-                    linkText.append(txt);
-                  }
-                }
-              }
-            }
 
             NamedNodeMap attrs = currentNode.getAttributes();
             String target = null;
@@ -444,18 +393,8 @@ public class DOMContentUtils {
               try {
 
                 URL url = URLUtil.resolveURL(base, target);
-                Outlink outlink = new Outlink(url.toString(), linkText
-                    .toString().trim());
-                outlinks.add(outlink);
-
-                // NUTCH-2433 - Keep the node name where the URL was found into
-                // the outlink metadata
-                if (keepNodenames) {
-                  MapWritable metadata = new MapWritable();
-                  metadata.put(new Text(srcTagMetaName), new Text(nodeName));
-                  outlink.setMetadata(metadata);
-                }
-
+                outlinks.add(new Outlink(url.toString(), linkText.toString()
+                    .trim()));
               } catch (MalformedURLException e) {
                 // don't care
               }

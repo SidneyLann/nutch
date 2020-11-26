@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,20 +16,19 @@
  */
 package org.apache.nutch.analysis.lang;
 
-import java.lang.invoke.MethodHandles;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+// JDK imports
 
+import java.lang.invoke.MethodHandles;
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.net.protocols.Response;
 import org.apache.nutch.parse.HTMLMetaTags;
-import org.apache.nutch.parse.HtmlParseFilter;
 import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseResult;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.parse.ParseFilter;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.Bytes;
 import org.apache.nutch.util.NodeWalker;
 import org.apache.tika.language.LanguageIdentifier;
 import org.slf4j.Logger;
@@ -39,16 +38,23 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
-public class HTMLLanguageParser implements HtmlParseFilter {
+import java.lang.CharSequence;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * Adds metadata identifying language of document if found We could also run
+ * statistical analysis here but we'd miss all other formats
+ */
+public class HTMLLanguageParser implements ParseFilter {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
   private int detect = -1, identify = -1;
-
-  private int contentMaxlength = -1;
-
-  private boolean onlyCertain = false;
 
   /* A static Map of ISO-639 language codes */
   private static Map<String, String> LANGUAGES_MAP = new HashMap<String, String>();
@@ -63,7 +69,7 @@ public class HTMLLanguageParser implements HtmlParseFilter {
         String[] values = p.getProperty(key).split(",", -1);
         LANGUAGES_MAP.put(key, key);
         for (int i = 0; i < values.length; i++) {
-          LANGUAGES_MAP.put(values[i].trim().toLowerCase(), key);
+          LANGUAGES_MAP.put(values[i].trim().toLowerCase(Locale.ROOT), key);
         }
       }
     } catch (Exception e) {
@@ -75,62 +81,75 @@ public class HTMLLanguageParser implements HtmlParseFilter {
 
   private Configuration conf;
 
+  private boolean onlyCertain;
+
   /**
    * Scan the HTML document looking at possible indications of content language<br>
-   * <ul>
-   * <li>1. html lang attribute
-   * (http://www.w3.org/TR/REC-html40/struct/dirlang.html#h-8.1) <li>2. meta
+   * <ol>
+   * <li>html lang attribute
+   * (http://www.w3.org/TR/REC-html40/struct/dirlang.html#h-8.1)
+   * </li>
+   * <li>meta
    * dc.language
    * (http://dublincore.org/documents/2000/07/16/usageguide/qualified
-   * -html.shtml#language) <li>3. meta http-equiv (content-language)
-   * (http://www.w3.org/TR/REC-html40/struct/global.html#h-7.4.4.2) <br></ul>
+   * -html.shtml#language)
+   * </li>
+   * <li>meta http-equiv (content-language)
+   * (http://www.w3.org/TR/REC-html40/struct/global.html#h-7.4.4.2)
+   * </li>
+   * </ol>
    */
-  public ParseResult filter(Content content, ParseResult parseResult,
+  public Parse filter(String url, WebPage page, Parse parse,
       HTMLMetaTags metaTags, DocumentFragment doc) {
     String lang = null;
 
-    Parse parse = parseResult.get(content.getUrl());
-
     if (detect >= 0 && identify < 0) {
-      lang = detectLanguage(parse, doc);
+      lang = detectLanguage(page, doc);
     } else if (detect < 0 && identify >= 0) {
       lang = identifyLanguage(parse);
     } else if (detect < identify) {
-      lang = detectLanguage(parse, doc);
+      lang = detectLanguage(page, doc);
       if (lang == null) {
         lang = identifyLanguage(parse);
       }
     } else if (identify < detect) {
       lang = identifyLanguage(parse);
       if (lang == null) {
-        lang = detectLanguage(parse, doc);
+        lang = detectLanguage(page, doc);
       }
     } else {
       LOG.warn("No configuration for language extraction policy is provided");
-      return parseResult;
+      return parse;
     }
 
     if (lang != null) {
-      parse.getData().getParseMeta().set(Metadata.LANGUAGE, lang);
-      return parseResult;
+      page.getMetadata().put(new Utf8(Metadata.LANGUAGE),
+          ByteBuffer.wrap(lang.getBytes(StandardCharsets.UTF_8)));
+      return parse;
     }
 
-    return parseResult;
+    return parse;
   }
 
   /** Try to find the document's language from page headers and metadata */
-  private String detectLanguage(Parse page, DocumentFragment doc) {
-    String lang = getLanguageFromMetadata(page.getData().getParseMeta());
-    if (lang == null) {
+  private String detectLanguage(WebPage page, DocumentFragment doc) {
+    String lang = null;
+    ByteBuffer blang = getLanguageFromMetadata(page.getMetadata());
+    if (blang == null) {
       LanguageParser parser = new LanguageParser(doc);
       lang = parser.getLanguage();
-    }
+    } else
+      lang = Bytes.toString(blang);
 
     if (lang != null) {
       return lang;
     }
 
-    lang = page.getData().getContentMeta().get(Response.CONTENT_LANGUAGE);
+    CharSequence ulang = page.getHeaders().get(
+        new Utf8(Response.CONTENT_LANGUAGE));
+    if (ulang != null) {
+      lang = ulang.toString();
+    }
 
     return lang;
   }
@@ -138,52 +157,47 @@ public class HTMLLanguageParser implements HtmlParseFilter {
   /** Use statistical language identification to extract page language */
   private String identifyLanguage(Parse parse) {
     StringBuilder text = new StringBuilder();
-    if (parse == null)
-      return null;
+    if (parse != null) {
+      String title = parse.getTitle();
+      if (title != null) {
+        text.append(title.toString());
+      }
 
-    String title = parse.getData().getTitle();
-    if (title != null) {
-      text.append(title.toString());
-    }
+      String content = parse.getText();
+      if (content != null) {
+        text.append(" ").append(content.toString());
+      }
 
-    String content = parse.getText();
-    if (content != null) {
-      text.append(" ").append(content.toString());
-    }
+      LanguageIdentifier identifier = new LanguageIdentifier(text.toString());
 
-    // trim content?
-    String titleandcontent = text.toString();
-
-    if (this.contentMaxlength != -1
-        && titleandcontent.length() > this.contentMaxlength)
-      titleandcontent = titleandcontent.substring(0, contentMaxlength);
-
-    LanguageIdentifier identifier = new LanguageIdentifier(titleandcontent);
-
-    if (onlyCertain) {
-      if (identifier.isReasonablyCertain())
+      if (onlyCertain) {
+        if (identifier.isReasonablyCertain()) {
+          return identifier.getLanguage();
+        }
+      } else {
         return identifier.getLanguage();
-      else
-        return null;
+      }
     }
-    return identifier.getLanguage();
+    return null;
   }
 
-  // Check in the metadata whether the language has already been stored there
-  // by Tika
-  private static String getLanguageFromMetadata(Metadata meta) {
-    if (meta == null)
+  // Check in the metadata whether the language has already been stored there by
+  // Tika
+  private static ByteBuffer getLanguageFromMetadata(
+      Map<CharSequence, ByteBuffer> metadata) {
+    if (metadata == null)
       return null;
+
     // dublin core
-    String lang = meta.get("dc.language");
+    ByteBuffer lang = metadata.get(new Utf8("dc.language"));
     if (lang != null)
       return lang;
     // meta content-language
-    lang = meta.get("content-language");
+    lang = metadata.get(new Utf8("content-language"));
     if (lang != null)
       return lang;
     // lang attribute
-    return meta.get("lang");
+    return metadata.get(new Utf8("lang"));
   }
 
   static class LanguageParser {
@@ -250,7 +264,7 @@ public class HTMLLanguageParser implements HtmlParseFilter {
                 Node attrnode = attrs.item(i);
                 if ("http-equiv".equalsIgnoreCase(attrnode.getNodeName())) {
                   if ("content-language".equals(attrnode.getNodeValue()
-                      .toLowerCase())) {
+                      .toLowerCase(Locale.ROOT))) {
                     Node valueattr = attrs.getNamedItem("content");
                     if (valueattr != null) {
                       httpEquiv = parseLanguage(valueattr.getNodeValue());
@@ -291,7 +305,7 @@ public class HTMLLanguageParser implements HtmlParseFilter {
         code = langs[i].split("-")[0];
         code = code.split("_")[0];
         // Find the ISO 639 code
-        language = (String) LANGUAGES_MAP.get(code.toLowerCase());
+        language = (String) LANGUAGES_MAP.get(code.toLowerCase(Locale.ROOT));
         i++;
       }
 
@@ -302,7 +316,6 @@ public class HTMLLanguageParser implements HtmlParseFilter {
 
   public void setConf(Configuration conf) {
     this.conf = conf;
-    contentMaxlength = conf.getInt("lang.analyze.max.length", -1);
     onlyCertain = conf.getBoolean("lang.identification.only.certain", false);
     String[] policy = conf.getStrings("lang.extraction.policy");
     for (int i = 0; i < policy.length; i++) {
@@ -318,4 +331,7 @@ public class HTMLLanguageParser implements HtmlParseFilter {
     return this.conf;
   }
 
+  public Collection<Field> getFields() {
+    return FIELDS;
+  }
 }

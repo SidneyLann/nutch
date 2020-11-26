@@ -18,7 +18,9 @@ package org.apache.nutch.net;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.util.NutchConfiguration;
+
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class TestURLFilters {
 
@@ -35,7 +37,12 @@ public class TestURLFilters {
     conf.set(URLFilters.URLFILTER_ORDER, class1 + " " + class2);
 
     URLFilters normalizers = new URLFilters(conf);
-    normalizers.filter("http://someurl/");
+    assertNotNull(normalizers);
+    try {
+      normalizers.filter("http://someurl/");
+    } catch (URLFilterException ufe) {
+      fail(ufe.toString());
+    }
   }
 
 }

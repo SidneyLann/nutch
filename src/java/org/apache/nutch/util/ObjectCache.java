@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -29,15 +29,15 @@ public class ObjectCache {
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
-  private static final WeakHashMap<Configuration, ObjectCache> CACHE = new WeakHashMap<>();
+  private static final WeakHashMap<Configuration, ObjectCache> CACHE = new WeakHashMap<Configuration, ObjectCache>();
 
   private final HashMap<String, Object> objectMap;
 
   private ObjectCache() {
-    objectMap = new HashMap<>();
+    objectMap = new HashMap<String, Object>();
   }
 
-  public synchronized static ObjectCache get(Configuration conf) {
+  public static ObjectCache get(Configuration conf) {
     ObjectCache objectCache = CACHE.get(conf);
     if (objectCache == null) {
       LOG.debug("No object cache found for conf=" + conf
@@ -48,15 +48,11 @@ public class ObjectCache {
     return objectCache;
   }
 
-  public synchronized Object getObject(String key) {
+  public Object getObject(String key) {
     return objectMap.get(key);
   }
 
-  public boolean hasObject(String key) {
-    return objectMap.containsKey(key);
-  }
-
-  public synchronized void setObject(String key, Object value) {
+  public void setObject(String key, Object value) {
     objectMap.put(key, value);
   }
 }

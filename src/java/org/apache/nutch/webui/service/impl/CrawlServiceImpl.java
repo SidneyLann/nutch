@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -60,9 +60,6 @@ public class CrawlServiceImpl implements CrawlService, CrawlingCycleListener {
     Crawl crawl = null;
     try {
       crawl = crawlDao.queryForId(crawlId);
-      if(crawl.getCrawlId()==null) {
-        crawl.setCrawlId("crawl-" + crawlId.toString());
-      }
       NutchClient client = nutchClientFactory.getClient(instance);
       String seedDirectory = client.createSeed(crawl.getSeedList());
       crawl.setSeedDirectory(seedDirectory);

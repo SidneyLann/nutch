@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,14 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.xerces.parsers.DOMParser;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
+import org.apache.xerces.parsers.DOMParser;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
@@ -58,7 +61,7 @@ public class TestNodeWalker {
           "http://apache.org/xml/features/nonvalidating/load-external-dtd",
           false);
       parser
-          .parse(new InputSource(new ByteArrayInputStream(WEBPAGE.getBytes())));
+          .parse(new InputSource(new ByteArrayInputStream(WEBPAGE.getBytes(StandardCharsets.UTF_8))));
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -74,7 +77,7 @@ public class TestNodeWalker {
         sb.append(text);
       }
     }
-    Assert.assertTrue("UL Content can NOT be found in the node",
+    assertTrue("UL Content can NOT be found in the node",
         findSomeUlContent(sb.toString()));
 
     StringBuffer sbSkip = new StringBuffer();
@@ -92,7 +95,7 @@ public class TestNodeWalker {
         sbSkip.append(text);
       }
     }
-    Assert.assertFalse("UL Content can be found in the node",
+    assertFalse("UL Content can be found in the node",
         findSomeUlContent(sbSkip.toString()));
   }
 

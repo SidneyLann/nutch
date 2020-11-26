@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,37 +16,42 @@
  */
 package org.apache.nutch.microformats.reltag;
 
+// JDK imports
 import java.lang.invoke.MethodHandles;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.apache.avro.util.Utf8;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.indexer.NutchDocument;
+import org.apache.nutch.parse.HTMLMetaTags;
+import org.apache.nutch.parse.ParseFilter;
+import org.apache.nutch.parse.Parse;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.nutch.metadata.Metadata;
-import org.apache.nutch.parse.HTMLMetaTags;
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.parse.ParseResult;
-import org.apache.nutch.parse.HtmlParseFilter;
-import org.apache.nutch.protocol.Content;
-import org.apache.nutch.util.StringUtil;
-
-import org.apache.hadoop.conf.Configuration;
 
 /**
  * Adds microformat rel-tags of document if found.
  * 
  * @see <a href="http://www.microformats.org/wiki/rel-tag">
  *      http://www.microformats.org/wiki/rel-tag</a>
+ * @author J&eacute;r&ocirc;me Charron
  */
-public class RelTagParser implements HtmlParseFilter {
+public class RelTagParser implements ParseFilter {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
@@ -54,25 +59,6 @@ public class RelTagParser implements HtmlParseFilter {
   public final static String REL_TAG = "Rel-Tag";
 
   private Configuration conf = null;
-
-  /**
-   * Scan the HTML document looking at possible rel-tags
-   */
-  public ParseResult filter(Content content, ParseResult parseResult,
-      HTMLMetaTags metaTags, DocumentFragment doc) {
-
-    // get parse obj
-    Parse parse = parseResult.get(content.getUrl());
-    // Trying to find the document's rel-tags
-    Parser parser = new Parser(doc);
-    Set<?> tags = parser.getRelTags();
-    Iterator<?> iter = tags.iterator();
-    Metadata metadata = parse.getData().getParseMeta();
-    while (iter.hasNext())
-      metadata.add(REL_TAG, (String) iter.next());
-
-    return parseResult;
-  }
 
   private static class Parser {
 
@@ -88,7 +74,6 @@ public class RelTagParser implements HtmlParseFilter {
     }
 
     void parse(Node node) {
-
       if (node.getNodeType() == Node.ELEMENT_NODE) {
         // Look for <a> tag
         if ("a".equalsIgnoreCase(node.getNodeName())) {
@@ -116,8 +101,9 @@ public class RelTagParser implements HtmlParseFilter {
 
       // Recurse
       NodeList children = node.getChildNodes();
-      for (int i = 0; children != null && i < children.getLength(); i++)
+      for (int i = 0; children != null && i < children.getLength(); i++) {
         parse(children.item(i));
+      }
     }
 
     private final static String parseTag(String url) {
@@ -133,14 +119,63 @@ public class RelTagParser implements HtmlParseFilter {
       }
       return tag;
     }
-
   }
 
+  /**
+   * Set the {@link Configuration} object
+   */
   public void setConf(Configuration conf) {
     this.conf = conf;
   }
 
+  /**
+   * Get the {@link Configuration} object
+   */
   public Configuration getConf() {
     return this.conf;
+  }
+
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.BASE_URL);
+    FIELDS.add(WebPage.Field.METADATA);
+  }
+
+  /**
+   * Gets all the fields for a given {@link WebPage} Many datastores need to
+   * setup the mapreduce job by specifying the fields needed. All extensions
+   * that work on WebPage are able to specify what fields they need.
+   */
+  @Override
+  public Collection<Field> getFields() {
+    return FIELDS;
+  }
+
+  @Override
+  /**
+   * Scan the HTML document looking at possible rel-tags
+   * @param url URL of the {@link WebPage} to be parsed 
+   * @param page {@link WebPage} object relative to the URL
+   * @param parse {@link Parse} object holding parse status
+   * @param metatags within the {@link NutchDocument}
+   * @param doc The {@link NutchDocument} object
+   * @return parse the actual {@link Parse} object
+   */
+  public Parse filter(String url, WebPage page, Parse parse,
+      HTMLMetaTags metaTags, DocumentFragment doc) {
+    // Trying to find the document's rel-tags
+    Parser parser = new Parser(doc);
+    Set<String> tags = parser.getRelTags();
+    // can't store multiple values in page metadata -> separate by tabs
+    StringBuffer sb = new StringBuffer();
+    Iterator<String> iter = tags.iterator();
+    while (iter.hasNext()) {
+      sb.append(iter.next());
+      sb.append("\t");
+    }
+    ByteBuffer bb = ByteBuffer.wrap(sb.toString().getBytes(StandardCharsets.UTF_8));
+    page.getMetadata().put(new Utf8(REL_TAG), bb);
+    return parse;
   }
 }

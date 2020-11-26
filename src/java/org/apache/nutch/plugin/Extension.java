@@ -16,7 +16,6 @@
  */
 package org.apache.nutch.plugin;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +45,7 @@ public class Extension {
   public Extension(PluginDescriptor pDescriptor, String pExtensionPoint,
       String pId, String pExtensionClass, Configuration conf,
       PluginRepository pluginRepository) {
-    fAttributes = new HashMap<>();
+    fAttributes = new HashMap<String, String>();
     setDescriptor(pDescriptor);
     setExtensionPoint(pExtensionPoint);
     setId(pId);
@@ -135,7 +134,7 @@ public class Extension {
   }
 
   /**
-   * Return an instance of the extension implementatio. Before we create a
+   * Return an instance of the extension implementation. Before we create a
    * extension instance we startup the plugin if it is not already done. The
    * plugin instance and the extension instance use the same
    * <code>PluginClassLoader</code>. Each Plugin use its own classloader. The
@@ -159,13 +158,8 @@ public class Extension {
         // lazy loading of Plugin in case there is no instance of the plugin
         // already.
         pluginRepository.getPluginInstance(getDescriptor());
-        Object object = null;
-        try {
-          object = extensionClazz.getConstructor().newInstance();
-        } catch (IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-          e.printStackTrace();
-        }
-        if (object != null && object instanceof Configurable) {
+        Object object = extensionClazz.newInstance();
+        if (object instanceof Configurable) {
           ((Configurable) object).setConf(this.conf);
         }
         return object;
@@ -196,9 +190,5 @@ public class Extension {
    */
   public void setDescriptor(PluginDescriptor pDescriptor) {
     fDescriptor = pDescriptor;
-  }
-
-  public String toString() {
-    return getId() + ", " + getClazz() + ", " + getTargetPoint();
   }
 }

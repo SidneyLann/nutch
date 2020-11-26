@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -45,12 +44,12 @@ public class PluginDescriptor {
   private String fVersion;
   private String fName;
   private String fProviderName;
-  private HashMap<String, ResourceBundle> fMessages = new HashMap<>();
-  private ArrayList<ExtensionPoint> fExtensionPoints = new ArrayList<>();
-  private ArrayList<String> fDependencies = new ArrayList<>();
-  private ArrayList<URL> fExportedLibs = new ArrayList<>();
-  private ArrayList<URL> fNotExportedLibs = new ArrayList<>();
-  private ArrayList<Extension> fExtensions = new ArrayList<>();
+  private HashMap<String, ResourceBundle> fMessages = new HashMap<String, ResourceBundle>();
+  private ArrayList<ExtensionPoint> fExtensionPoints = new ArrayList<ExtensionPoint>();
+  private ArrayList<String> fDependencies = new ArrayList<String>();
+  private ArrayList<URL> fExportedLibs = new ArrayList<URL>();
+  private ArrayList<URL> fNotExportedLibs = new ArrayList<URL>();
+  private ArrayList<Extension> fExtensions = new ArrayList<Extension>();
   private PluginClassLoader fClassLoader;
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
@@ -214,18 +213,14 @@ public class PluginDescriptor {
   }
 
   /**
-   * Adds a exported library with a relative path to the plugin directory. We
-   * automatically escape characters that are illegal in URLs. It is recommended
-   * that code converts an abstract pathname into a URL by first converting it
-   * into a URI, via the toURI method, and then converting the URI into a URL
-   * via the URI.toURL method.
+   * Adds a exported library with a relative path to the plugin directory.
    * 
    * @param pLibPath
    */
   public void addExportedLibRelative(String pLibPath)
       throws MalformedURLException {
-    URI uri = new File(getPluginPath() + File.separator + pLibPath).toURI();
-    URL url = uri.toURL();
+    URL url = new File(getPluginPath() + File.separator + pLibPath).toURI()
+        .toURL();
     fExportedLibs.add(url);
   }
 
@@ -248,18 +243,14 @@ public class PluginDescriptor {
   }
 
   /**
-   * Adds a exported library with a relative path to the plugin directory. We
-   * automatically escape characters that are illegal in URLs. It is recommended
-   * that code converts an abstract pathname into a URL by first converting it
-   * into a URI, via the toURI method, and then converting the URI into a URL
-   * via the URI.toURL method.
+   * Adds a not exported library with a plugin directory relative path.
    * 
    * @param pLibPath
    */
   public void addNotExportedLibRelative(String pLibPath)
       throws MalformedURLException {
-    URI uri = new File(getPluginPath() + File.separator + pLibPath).toURI();
-    URL url = uri.toURL();
+    URL url = new File(getPluginPath() + File.separator + pLibPath).toURI()
+        .toURL();
     fNotExportedLibs.add(url);
   }
 
@@ -282,7 +273,7 @@ public class PluginDescriptor {
   public PluginClassLoader getClassLoader() {
     if (fClassLoader != null)
       return fClassLoader;
-    ArrayList<URL> arrayList = new ArrayList<>();
+    ArrayList<URL> arrayList = new ArrayList<URL>();
     arrayList.addAll(fExportedLibs);
     arrayList.addAll(fNotExportedLibs);
     arrayList.addAll(getDependencyLibs());
@@ -305,7 +296,7 @@ public class PluginDescriptor {
    * @return Collection
    */
   private ArrayList<URL> getDependencyLibs() {
-    ArrayList<URL> list = new ArrayList<>();
+    ArrayList<URL> list = new ArrayList<URL>();
     collectLibs(list, this);
     return list;
   }

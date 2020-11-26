@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,34 +16,33 @@
  */
 package org.apache.nutch.urlfilter.api;
 
+// JDK imports
 import java.lang.invoke.MethodHandles;
 import java.io.File;
 import java.io.Reader;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ArrayList;
 
+// Commons Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Hadoop imports
 import org.apache.hadoop.conf.Configuration;
-import org.apache.nutch.net.URLFilter;
-import org.apache.nutch.util.URLUtil;
+
+// Nutch imports
+import org.apache.nutch.net.*;
 
 /**
  * Generic {@link org.apache.nutch.net.URLFilter URL filter} based on regular
  * expressions.
- * 
- * <p>
- * The regular expressions rules are expressed in a file. The file of rules is
- * determined for each implementation using the
- * {@link #getRulesReader(Configuration conf)} method.
- * </p>
  * 
  * <p>
  * The format of this file is made of many rules (one per line):<br>
@@ -52,9 +51,7 @@ import org.apache.nutch.util.URLUtil;
  * </code><br>
  * where plus (<code>+</code>)means go ahead and index it and minus (
  * <code>-</code>)means no.
- * </p>
- * 
- * @author J&eacute;r&ocirc;me Charron
+ *
  */
 public abstract class RegexURLFilterBase implements URLFilter {
 
@@ -67,14 +64,6 @@ public abstract class RegexURLFilterBase implements URLFilter {
 
   /** The current configuration */
   private Configuration conf;
-
-  /**
-   * Whether there are host- or domain-specific rules. If there are no specific
-   * rules host and domain name are not extracted from the URL to speed up the
-   * matching. {@link #readRules(Reader)} automatically sets this to true if
-   * host- or domain-specific rules are used in the rule file.
-   */
-  protected boolean hasHostDomainRules = false;
 
   /**
    * Constructs a new empty RegexURLFilterBase
@@ -90,7 +79,7 @@ public abstract class RegexURLFilterBase implements URLFilter {
    */
   public RegexURLFilterBase(File filename) throws IOException,
       IllegalArgumentException {
-    this(new FileReader(filename));
+    this(new InputStreamReader(new FileInputStream(filename), StandardCharsets.UTF_8));
   }
 
   /**
@@ -129,20 +118,6 @@ public abstract class RegexURLFilterBase implements URLFilter {
    *          is the regular expression associated to this rule.
    */
   protected abstract RegexRule createRule(boolean sign, String regex);
-  
-  /**
-   * Creates a new {@link RegexRule}.
-   * @param 
-   *        sign of the regular expression.
-   *        A <code>true</code> value means that any URL matching this rule
-   *        must be included, whereas a <code>false</code>
-   *        value means that any URL matching this rule must be excluded.
-   * @param regex
-   *        is the regular expression associated to this rule.
-   * @param hostOrDomain
-   *        the host or domain to which this regex belongs
-   */
-  protected abstract RegexRule createRule(boolean sign, String regex, String hostOrDomain);
 
   /**
    * Returns the name of the file of rules to use for a particular
@@ -162,34 +137,7 @@ public abstract class RegexURLFilterBase implements URLFilter {
 
   // Inherited Javadoc
   public String filter(String url) {
-    String host = null;
-    String domain = null;
-
-    if (hasHostDomainRules) {
-      host = URLUtil.getHost(url);
-      try {
-        domain = URLUtil.getDomainName(url);
-      } catch (MalformedURLException e) {
-        // shouldnt happen here right?
-      }
-
-      LOG.debug("URL belongs to host {} and domain {}", host, domain);
-    }
-    
     for (RegexRule rule : rules) {
-      // Skip the skip for rules that don't share the same host and domain
-      if (rule.hostOrDomain() != null &&
-            !rule.hostOrDomain().equals(host) &&
-            !rule.hostOrDomain().equals(domain)) {
-        LOG.debug("Skipping rule [{}] for host: {}", rule.regex(),
-            rule.hostOrDomain());
-
-        continue;
-      }
-    
-      LOG.debug("Applying rule [{}] for host {} and domain {}", rule.regex(),
-          host, domain);
-
       if (rule.match(url)) {
         return rule.accept() ? url : null;
       }
@@ -251,8 +199,7 @@ public abstract class RegexURLFilterBase implements URLFilter {
     BufferedReader in = new BufferedReader(reader);
     List<RegexRule> rules = new ArrayList<RegexRule>();
     String line;
-    String hostOrDomain = null;
-    
+
     while ((line = in.readLine()) != null) {
       if (line.length() == 0) {
         continue;
@@ -270,22 +217,15 @@ public abstract class RegexURLFilterBase implements URLFilter {
       case '\n':
       case '#': // skip blank & comment lines
         continue;
-      case '>':
-        hostOrDomain = line.substring(1).trim();
-        hasHostDomainRules = true;
-        continue;
-      case '<':
-        hostOrDomain = null;
-        continue;
       default:
         throw new IOException("Invalid first character: " + line);
       }
 
       String regex = line.substring(1);
       if (LOG.isTraceEnabled()) {
-        LOG.trace("Adding rule [" + regex + "] for " + hostOrDomain);
+        LOG.trace("Adding rule [" + regex + "]");
       }
-      RegexRule rule = createRule(sign, regex, hostOrDomain);
+      RegexRule rule = createRule(sign, regex);
       rules.add(rule);
     }
     return rules;
@@ -302,7 +242,7 @@ public abstract class RegexURLFilterBase implements URLFilter {
   public static void main(RegexURLFilterBase filter, String args[])
       throws IOException, IllegalArgumentException {
 
-    BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     String line;
     while ((line = in.readLine()) != null) {
       String out = filter.filter(line);
@@ -315,5 +255,4 @@ public abstract class RegexURLFilterBase implements URLFilter {
       }
     }
   }
-
 }

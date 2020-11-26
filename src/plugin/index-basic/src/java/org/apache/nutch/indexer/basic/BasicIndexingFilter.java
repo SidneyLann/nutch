@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,122 +14,129 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.indexer.basic;
 
-import org.apache.nutch.metadata.Nutch;
-import org.apache.nutch.parse.Parse;
-
-import org.apache.nutch.indexer.IndexingFilter;
+import java.lang.invoke.MethodHandles;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.indexer.IndexingException;
+import org.apache.nutch.indexer.IndexingFilter;
 import org.apache.nutch.indexer.NutchDocument;
-import org.apache.nutch.util.StringUtil;
-import org.apache.nutch.util.URLUtil;
-import org.apache.hadoop.io.Text;
-
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
+import org.apache.nutch.metadata.Nutch;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.Bytes;
+import org.apache.nutch.util.TableUtil;
+import org.apache.solr.common.util.DateUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Date;
-
-import org.apache.hadoop.conf.Configuration;
+import java.util.HashSet;
 
 /**
- * Adds basic searchable fields to a document. The fields added are : domain,
- * host, url, content, title, cache, tstamp domain is included depending on
- * {@code indexer.add.domain} in nutch-default.xml. title is truncated as per
- * {@code indexer.max.title.length} in nutch-default.xml. (As per NUTCH-1004, a
- * zero-length title is not added) content is truncated as per
- * {@code indexer.max.content.length} in nutch-default.xml.
+ * Adds basic searchable fields to a document. The fields are: host - add host
+ * as un-stored, indexed and tokenized url - url is both stored and indexed, so
+ * it's both searchable and returned. This is also a required field. content -
+ * content is indexed, so that it's searchable, but not stored in index title -
+ * title is stored and indexed cache - add cached content/summary display
+ * policy, if available tstamp - add timestamp when fetched, for deduplication
  */
 public class BasicIndexingFilter implements IndexingFilter {
+  private static final Logger LOG = LoggerFactory
+      .getLogger(MethodHandles.lookup().lookupClass());
 
   private int MAX_TITLE_LENGTH;
-  private int MAX_CONTENT_LENGTH;
-  private boolean addDomain = false;
   private Configuration conf;
 
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.TITLE);
+    FIELDS.add(WebPage.Field.TEXT);
+    FIELDS.add(WebPage.Field.FETCH_TIME);
+  }
+
   /**
-   * The {@link BasicIndexingFilter} filter object which supports few
-   * configuration settings for adding basic searchable fields. See
-   * {@code indexer.add.domain}, {@code indexer.max.title.length},
-   * {@code indexer.max.content.length} in nutch-default.xml.
+   * The {@link BasicIndexingFilter} filter object which supports boolean
+   * configurable value for length of characters permitted within the title @see
+   * {@code indexer.max.title.length} in nutch-default.xml
    * 
    * @param doc
    *          The {@link NutchDocument} object
-   * @param parse
-   *          The relevant {@link Parse} object passing through the filter
    * @param url
    *          URL to be filtered for anchor text
-   * @param datum
-   *          The {@link CrawlDatum} entry
-   * @param inlinks
-   *          The {@link Inlinks} containing anchor text
+   * @param page
+   *          {@link WebPage} object relative to the URL
    * @return filtered NutchDocument
    */
-  public NutchDocument filter(NutchDocument doc, Parse parse, Text url,
-      CrawlDatum datum, Inlinks inlinks) throws IndexingException {
+  public NutchDocument filter(NutchDocument doc, String url, WebPage page)
+      throws IndexingException {
 
-    Text reprUrl = (Text) datum.getMetaData().get(Nutch.WRITABLE_REPR_URL_KEY);
-    String reprUrlString = reprUrl != null ? reprUrl.toString() : null;
-    String urlString = url.toString();
+    String reprUrl = null;
+    // if (page.isReadable(WebPage.Field.REPR_URL.getIndex())) {
+    reprUrl = TableUtil.toString(page.getReprUrl());
+    // }
 
     String host = null;
     try {
       URL u;
-      if (reprUrlString != null) {
-        u = new URL(reprUrlString);
+      if (reprUrl != null) {
+        u = new URL(reprUrl);
       } else {
-        u = new URL(urlString);
+        u = new URL(url);
       }
-
-      if (addDomain) {
-        doc.add("domain", URLUtil.getDomainName(u));
-      }
-
       host = u.getHost();
     } catch (MalformedURLException e) {
       throw new IndexingException(e);
     }
 
     if (host != null) {
+      // add host as un-stored, indexed and tokenized
       doc.add("host", host);
     }
 
-    doc.add("url", reprUrlString == null ? urlString : reprUrlString);
+    // url is both stored and indexed, so it's both searchable and returned
+    doc.add("url", reprUrl == null ? url : reprUrl);
 
-    // content
-    String content = parse.getText();
-    if (MAX_CONTENT_LENGTH > -1 && content.length() > MAX_CONTENT_LENGTH) {
-      content = content.substring(0, MAX_CONTENT_LENGTH);
-    }
-    doc.add("content", StringUtil.cleanField(content));
+    // content is indexed, so that it's searchable, but not stored in index
+    doc.add("content", TableUtil.toString(page.getText()));
 
     // title
-    String title = parse.getData().getTitle();
+    String title = TableUtil.toString(page.getTitle());
     if (MAX_TITLE_LENGTH > -1 && title.length() > MAX_TITLE_LENGTH) { // truncate
                                                                       // title
                                                                       // if
                                                                       // needed
       title = title.substring(0, MAX_TITLE_LENGTH);
     }
-
     if (title.length() > 0) {
       // NUTCH-1004 Do not index empty values for title field
-      doc.add("title", StringUtil.cleanField(title));
+      doc.add("title", title);
     }
-
     // add cached content/summary display policy, if available
-    String caching = parse.getData().getMeta(Nutch.CACHING_FORBIDDEN_KEY);
+    ByteBuffer cachingRaw = page.getMetadata().get(
+        Nutch.CACHING_FORBIDDEN_KEY_UTF8);
+    String caching = Bytes.toString(cachingRaw);
     if (caching != null && !caching.equals(Nutch.CACHING_FORBIDDEN_NONE)) {
       doc.add("cache", caching);
     }
 
     // add timestamp when fetched, for deduplication
-    doc.add("tstamp", new Date(datum.getFetchTime()));
-
+    String tstamp = null;
+    if(page.getPrevFetchTime() != 0) {
+      tstamp = DateUtil.getThreadLocalDateFormat().format(new Date(page.getPrevFetchTime())); 
+    } else {
+    tstamp = DateUtil.getThreadLocalDateFormat().format(new Date(page.getFetchTime()));
+    }
+    doc.add("tstamp", tstamp);
     return doc;
+  }
+
+  public void addIndexBackendOptions(Configuration conf) {
   }
 
   /**
@@ -138,8 +145,8 @@ public class BasicIndexingFilter implements IndexingFilter {
   public void setConf(Configuration conf) {
     this.conf = conf;
     this.MAX_TITLE_LENGTH = conf.getInt("indexer.max.title.length", 100);
-    this.addDomain = conf.getBoolean("indexer.add.domain", false);
-    this.MAX_CONTENT_LENGTH = conf.getInt("indexer.max.content.length", -1);
+    LOG.info("Maximum title length for indexing set to: "
+        + this.MAX_TITLE_LENGTH);
   }
 
   /**
@@ -147,6 +154,16 @@ public class BasicIndexingFilter implements IndexingFilter {
    */
   public Configuration getConf() {
     return this.conf;
+  }
+
+  /**
+   * Gets all the fields for a given {@link WebPage} Many datastores need to
+   * setup the mapreduce job by specifying the fields needed. All extensions
+   * that work on WebPage are able to specify what fields they need.
+   */
+  @Override
+  public Collection<WebPage.Field> getFields() {
+    return FIELDS;
   }
 
 }

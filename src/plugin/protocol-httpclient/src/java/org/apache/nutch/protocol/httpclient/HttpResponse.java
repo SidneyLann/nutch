@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,11 +16,14 @@
  */
 package org.apache.nutch.protocol.httpclient;
 
+// JDK imports
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+// HTTP Client imports
+import org.apache.avro.util.Utf8;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpVersion;
 import org.apache.commons.httpclient.cookie.CookiePolicy;
@@ -30,13 +33,13 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpClient;
 
 
-import org.apache.nutch.crawl.CrawlDatum;
+// Nutch imports
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.metadata.SpellCheckedMetadata;
 import org.apache.nutch.net.protocols.HttpDateFormat;
 import org.apache.nutch.net.protocols.Response;
 import org.apache.nutch.protocol.http.api.HttpBase;
-import org.apache.hadoop.io.Text;
+import org.apache.nutch.storage.WebPage;
 
 /**
  * An HTTP response.
@@ -57,8 +60,8 @@ public class HttpResponse implements Response {
    *          An instance of the implementation class of this plugin
    * @param url
    *          URL to be fetched
-   * @param datum
-   *          Crawl data
+   * @param page
+   *          WebPage
    * @param followRedirects
    *          Whether to follow redirects; follows redirect if and only if this
    *          is true
@@ -66,7 +69,7 @@ public class HttpResponse implements Response {
    * @throws IOException
    *           When an error occurs
    */
-  HttpResponse(Http http, URL url, CrawlDatum datum, boolean followRedirects)
+  HttpResponse(Http http, URL url, WebPage page, boolean followRedirects)
       throws IOException {
 
     // Prepare GET method for HTTP request
@@ -74,9 +77,9 @@ public class HttpResponse implements Response {
     GetMethod get = new GetMethod(url.toString());
     get.setFollowRedirects(followRedirects);
     get.setDoAuthentication(true);
-    if (http.isIfModifiedSinceEnabled() && datum.getModifiedTime() > 0) {
+    if (page.getModifiedTime() > 0) {
       get.setRequestHeader("If-Modified-Since",
-          HttpDateFormat.toString(datum.getModifiedTime()));
+          HttpDateFormat.toString(page.getModifiedTime()));
     }
 
     // Set HTTP parameters
@@ -88,34 +91,12 @@ public class HttpResponse implements Response {
     }
     params.makeLenient();
     params.setContentCharset("UTF-8");
-
-    if (http.isCookieEnabled()) {
-      params.setCookiePolicy(CookiePolicy.BROWSER_COMPATIBILITY);
-      params.setBooleanParameter(HttpMethodParams.SINGLE_COOKIE_HEADER, true);
-    } else {
-      params.setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
-    }
+    params.setCookiePolicy(CookiePolicy.BROWSER_COMPATIBILITY);
+    params.setBooleanParameter(HttpMethodParams.SINGLE_COOKIE_HEADER, true);
     // XXX (ab) not sure about this... the default is to retry 3 times; if
     // XXX the request body was sent the method is not retried, so there is
     // XXX little danger in retrying...
     // params.setParameter(HttpMethodParams.RETRY_HANDLER, null);
-    
-    if (http.isCookieEnabled()) {
-      String cookie = null;
-      
-      if (datum.getMetaData().containsKey(http.COOKIE)) {
-        cookie = ((Text)datum.getMetaData().get(http.COOKIE)).toString();
-      }
-      
-      if (cookie == null) {
-        cookie = http.getCookie(url);
-      }
-      
-      if (cookie != null) {
-        get.addRequestHeader("Cookie", cookie);
-      }
-    }
-    
     try {
       HttpClient client = Http.getClient();
       client.getParams().setParameter("http.useragent", http.getUserAgent()); // NUTCH-1941
@@ -188,11 +169,21 @@ public class HttpResponse implements Response {
           content = http.processGzipEncoded(content, url);
           if (Http.LOG.isTraceEnabled())
             fetchTrace.append("; extracted to " + content.length + " bytes");
+          headers.remove(Response.CONTENT_LENGTH);
         } else if ("deflate".equals(contentEncoding)) {
           content = http.processDeflateEncoded(content, url);
           if (Http.LOG.isTraceEnabled())
             fetchTrace.append("; extracted to " + content.length + " bytes");
+          headers.remove(Response.CONTENT_LENGTH);
         }
+      }
+
+      // add headers in metadata to row
+      if (page.getHeaders() != null) {
+        page.getHeaders().clear();
+      }
+      for (String key : headers.names()) {
+        page.getHeaders().put(new Utf8(key), new Utf8(headers.get(key)));
       }
 
       // Logger trace message

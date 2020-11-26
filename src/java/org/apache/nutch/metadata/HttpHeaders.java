@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,42 +16,34 @@
  */
 package org.apache.nutch.metadata;
 
-import org.apache.hadoop.io.Text;
-
 /**
  * A collection of HTTP header names.
  * 
  * @see <a href="http://rfc-ref.org/RFC-TEXTS/2616/">Hypertext Transfer Protocol
  *      -- HTTP/1.1 (RFC 2616)</a>
+ * 
+ * @author Chris Mattmann
+ * @author J&eacute;r&ocirc;me Charron
  */
 public interface HttpHeaders {
+  public final static String TRANSFER_ENCODING = "Transfer-Encoding";
 
-  public static final String TRANSFER_ENCODING = "Transfer-Encoding";
+  public final static String CONTENT_ENCODING = "Content-Encoding";
 
-  public static final String CLIENT_TRANSFER_ENCODING = "Client-Transfer-Encoding";
+  public final static String CONTENT_LANGUAGE = "Content-Language";
 
-  public static final String CONTENT_ENCODING = "Content-Encoding";
+  public final static String CONTENT_LENGTH = "Content-Length";
 
-  public static final String CONTENT_LANGUAGE = "Content-Language";
-
-  public static final String CONTENT_LENGTH = "Content-Length";
-
-  public static final String CONTENT_LOCATION = "Content-Location";
+  public final static String CONTENT_LOCATION = "Content-Location";
 
   public static final String CONTENT_DISPOSITION = "Content-Disposition";
 
-  public static final String CONTENT_MD5 = "Content-MD5";
+  public final static String CONTENT_MD5 = "Content-MD5";
 
-  public static final String CONTENT_TYPE = "Content-Type";
+  public final static String CONTENT_TYPE = "Content-Type";
 
-  public static final Text WRITABLE_CONTENT_TYPE = new Text(CONTENT_TYPE);
+  public final static String LAST_MODIFIED = "Last-Modified";
 
-  public static final String LAST_MODIFIED = "Last-Modified";
-
-  public static final String LOCATION = "Location";
-
-  public static final String IF_MODIFIED_SINCE = "If-Modified-Since";
-
-  public static final String USER_AGENT = "User-Agent";
+  public final static String LOCATION = "Location";
 
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,7 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
+
+import java.nio.ByteBuffer;
 
 /**
  * A collection of String processing utility methods.
@@ -50,6 +53,34 @@ public class StringUtil {
       '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
   /**
+   * Convenience call for {@link #toHexString(ByteBuffer, String, int)}, where
+   * <code>sep = null; lineLen = Integer.MAX_VALUE</code>.
+   * 
+   * @param buf
+   */
+  public static String toHexString(ByteBuffer buf) {
+    return toHexString(buf, null, Integer.MAX_VALUE);
+  }
+
+  /**
+   * Get a text representation of a ByteBuffer as hexadecimal String, where each
+   * pair of hexadecimal digits corresponds to consecutive bytes in the array.
+   * 
+   * @param buf
+   *          input data
+   * @param sep
+   *          separate every pair of hexadecimal digits with this separator, or
+   *          null if no separation is needed.
+   * @param lineLen
+   *          break the output String into lines containing output for lineLen
+   *          bytes.
+   */
+  public static String toHexString(ByteBuffer buf, String sep, int lineLen) {
+    return toHexString(buf.array(), buf.arrayOffset() + buf.position(),
+        buf.remaining(), sep, lineLen);
+  }
+
+  /**
    * Convenience call for {@link #toHexString(byte[], String, int)}, where
    * <code>sep = null; lineLen = Integer.MAX_VALUE</code>.
    * 
@@ -73,18 +104,40 @@ public class StringUtil {
    *          bytes.
    */
   public static String toHexString(byte[] buf, String sep, int lineLen) {
+    return toHexString(buf, 0, buf.length, sep, lineLen);
+  }
+
+  /**
+   * Get a text representation of a byte[] as hexadecimal String, where each
+   * pair of hexadecimal digits corresponds to consecutive bytes in the array.
+   * 
+   * @param buf
+   *          input data
+   * @param of
+   *          the offset into the byte[] to start reading
+   * @param cb
+   *          the number of bytes to read from the byte[]
+   * @param sep
+   *          separate every pair of hexadecimal digits with this separator, or
+   *          null if no separation is needed.
+   * @param lineLen
+   *          break the output String into lines containing output for lineLen
+   *          bytes.
+   */
+  public static String toHexString(byte[] buf, int of, int cb, String sep,
+      int lineLen) {
     if (buf == null)
       return null;
     if (lineLen <= 0)
       lineLen = Integer.MAX_VALUE;
-    StringBuffer res = new StringBuffer(buf.length * 2);
-    for (int i = 0; i < buf.length; i++) {
-      int b = buf[i];
+    StringBuffer res = new StringBuffer(cb * 2);
+    for (int c = 0; c < cb; c++) {
+      int b = buf[of++];
       res.append(HEX_DIGITS[(b >> 4) & 0xf]);
       res.append(HEX_DIGITS[b & 0xf]);
-      if (i > 0 && (i % lineLen) == 0)
+      if (c > 0 && (c % lineLen) == 0)
         res.append('\n');
-      else if (sep != null && i < lineLen - 1)
+      else if (sep != null && c < lineLen - 1)
         res.append(sep);
     }
     return res.toString();
@@ -138,7 +191,11 @@ public class StringUtil {
   }
 
   /**
-   * Simple character substitution which cleans all � chars from a given String.
+   * Takes in a String value and cleans out any offending "�"
+   * 
+   * @param value
+   *          the dirty String value.
+   * @return clean String
    */
   public static String cleanField(String value) {
     return value.replaceAll("�", "");

@@ -81,7 +81,7 @@ public class CollectionManager extends Configured {
       parse(input);
     } catch (Exception e) {
       if (LOG.isWarnEnabled()) {
-        LOG.warn("Error occured:" + e);
+        LOG.warn("Error occured: " + e);
       }
     }
   }
@@ -94,7 +94,7 @@ public class CollectionManager extends Configured {
           .getElementsByTagName(Subcollection.TAG_COLLECTION);
 
       if (LOG.isInfoEnabled()) {
-        LOG.info("file has " + nodeList.getLength() + " elements");
+        LOG.info("file has" + nodeList.getLength() + " elements");
       }
 
       for (int i = 0; i < nodeList.getLength(); i++) {
@@ -172,16 +172,16 @@ public class CollectionManager extends Configured {
    * 
    * @param url
    *          The url to test against Collections
-   * @return Subcollections
+   * @return Space delimited string of collection names url is part of
    */
-  public List<Subcollection> getSubCollections(final String url) {
-    List<Subcollection> collections = new ArrayList<Subcollection>();
-    final Iterator iterator = collectionMap.values().iterator();
+  public List<String> getSubCollections(final String url) {
+    List<String> collections = new ArrayList<String>();
+    final Iterator<Subcollection> iterator = collectionMap.values().iterator();
 
     while (iterator.hasNext()) {
-      final Subcollection subCol = (Subcollection) iterator.next();
+      final Subcollection subCol = iterator.next();
       if (subCol.filter(url) != null) {
-        collections.add(subCol);
+        collections.add(subCol.name);
       }
     }
     if (LOG.isTraceEnabled()) {
@@ -196,7 +196,7 @@ public class CollectionManager extends Configured {
    * 
    * @return All collections CollectionManager knows about
    */
-  public Collection getAll() {
+  public Collection<Subcollection> getAll() {
     return collectionMap.values();
   }
 
@@ -212,10 +212,11 @@ public class CollectionManager extends Configured {
       final Document doc = new DocumentImpl();
       final Element collections = doc
           .createElement(Subcollection.TAG_COLLECTIONS);
-      final Iterator iterator = collectionMap.values().iterator();
+      final Iterator<Subcollection> iterator = collectionMap.values()
+          .iterator();
 
       while (iterator.hasNext()) {
-        final Subcollection subCol = (Subcollection) iterator.next();
+        final Subcollection subCol = iterator.next();
         final Element collection = doc
             .createElement(Subcollection.TAG_COLLECTION);
         collections.appendChild(collection);

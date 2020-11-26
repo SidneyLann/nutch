@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.crawl;
 
 import org.slf4j.Logger;
@@ -33,7 +34,7 @@ public class FetchScheduleFactory {
   } // no public ctor
 
   /** Return the FetchSchedule implementation. */
-  public synchronized static FetchSchedule getFetchSchedule(Configuration conf) {
+  public static FetchSchedule getFetchSchedule(Configuration conf) {
     String clazz = conf.get("db.fetch.schedule.class",
         DefaultFetchSchedule.class.getName());
     ObjectCache objectCache = ObjectCache.get(conf);
@@ -42,7 +43,7 @@ public class FetchScheduleFactory {
       try {
         LOG.info("Using FetchSchedule impl: " + clazz);
         Class<?> implClass = Class.forName(clazz);
-        impl = (FetchSchedule) implClass.getConstructor().newInstance();
+        impl = (FetchSchedule) implClass.newInstance();
         impl.setConf(conf);
         objectCache.setObject(clazz, impl);
       } catch (Exception e) {

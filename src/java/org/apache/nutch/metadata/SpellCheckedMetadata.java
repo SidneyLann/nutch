@@ -32,17 +32,16 @@ import org.apache.commons.lang.StringUtils;
 public class SpellCheckedMetadata extends Metadata {
 
   /**
-   * Threshold divider to calculate max. Levenshtein distance for misspelled
-   * header field names:
+   * Treshold divider.
    * 
-   * <code>threshold = Math.min(3, searched.length() / TRESHOLD_DIVIDER);</code>
+   * <code>threshold = searched.length() / TRESHOLD_DIVIDER;</code>
    */
   private static final int TRESHOLD_DIVIDER = 3;
 
   /**
    * Normalized name to name mapping.
    */
-  private final static Map<String, String> NAMES_IDX = new HashMap<>();
+  private final static Map<String, String> NAMES_IDX = new HashMap<String, String>();
 
   /**
    * Array holding map keys.
@@ -113,7 +112,7 @@ public class SpellCheckedMetadata extends Metadata {
     String value = NAMES_IDX.get(searched);
 
     if ((value == null) && (normalized != null)) {
-      int threshold = Math.min(3, searched.length() / TRESHOLD_DIVIDER);
+      int threshold = searched.length() / TRESHOLD_DIVIDER;
       for (int i = 0; i < normalized.length && value == null; i++) {
         if (StringUtils.getLevenshteinDistance(searched, normalized[i]) < threshold) {
           value = NAMES_IDX.get(normalized[i]);

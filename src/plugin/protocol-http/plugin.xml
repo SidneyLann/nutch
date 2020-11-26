@@ -40,9 +40,8 @@
                       class="org.apache.nutch.protocol.http.Http">
         <parameter name="protocolName" value="http"/>
       </implementation>
-      
       <implementation id="org.apache.nutch.protocol.http.Http"
-                       class="org.apache.nutch.protocol.http.Http">
+                      class="org.apache.nutch.protocol.http.Http">
            <parameter name="protocolName" value="https"/>
       </implementation>
 

@@ -16,23 +16,17 @@
  */
 package org.apache.nutch.indexer.anchor;
 
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlink;
-import org.apache.nutch.crawl.Inlinks;
 import org.apache.nutch.indexer.NutchDocument;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.parse.ParseImpl;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * JUnit test case which tests 1. that anchor text is obtained 2. that anchor
  * deduplication functionality is working
- * 
- * @author lewismc
  * 
  */
 public class TestAnchorIndexingFilter {
@@ -43,25 +37,21 @@ public class TestAnchorIndexingFilter {
     conf.setBoolean("anchorIndexingFilter.deduplicate", true);
     AnchorIndexingFilter filter = new AnchorIndexingFilter();
     filter.setConf(conf);
-    Assert.assertNotNull(filter);
     NutchDocument doc = new NutchDocument();
-    ParseImpl parse = new ParseImpl("foo bar", new ParseData());
-    Inlinks inlinks = new Inlinks();
-    inlinks.add(new Inlink("http://test1.com/", "text1"));
-    inlinks.add(new Inlink("http://test2.com/", "text2"));
-    inlinks.add(new Inlink("http://test3.com/", "text2"));
-    try {
-      filter.filter(doc, parse, new Text("http://nutch.apache.org/index.html"),
-          new CrawlDatum(), inlinks);
-    } catch (Exception e) {
-      e.printStackTrace();
-      Assert.fail(e.getMessage());
-    }
-    Assert.assertNotNull(doc);
-    Assert.assertTrue("test if there is an anchor at all", doc.getFieldNames()
+    WebPage page = WebPage.newBuilder().build();
+    page.getInlinks().put(new Utf8("http://example1.com/"),
+        new Utf8("cool site"));
+    page.getInlinks().put(new Utf8("http://example2.com/"),
+        new Utf8("cool site"));
+    page.getInlinks().put(new Utf8("http://example3.com/"),
+        new Utf8("fun site"));
+    filter.filter(doc, "http://myurldoesnotmatter.com/", page);
+
+    assertTrue("test if there is an anchor at all", doc.getFieldNames()
         .contains("anchor"));
-    Assert.assertEquals("test dedup, we expect 2", 2, doc.getField("anchor")
-        .getValues().size());
+
+    assertEquals("test dedup, we expect 2", 2, doc.getFieldValues("anchor")
+        .size());
   }
 
 }

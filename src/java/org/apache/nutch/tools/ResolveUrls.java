@@ -17,10 +17,11 @@
 package org.apache.nutch.tools;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -75,7 +76,6 @@ public class ResolveUrls {
       String host = URLUtil.getHost(url);
       long start = System.currentTimeMillis();
       try {
-
         // get the address by name and if no error is thrown then it
         // is resolved successfully
         InetAddress.getByName(host);
@@ -105,8 +105,7 @@ public class ResolveUrls {
       pool = Executors.newFixedThreadPool(numThreads);
 
       // read in the urls file and loop through each line, one url per line
-      BufferedReader buffRead = new BufferedReader(new FileReader(new File(
-          urlsFile)));
+      BufferedReader buffRead = new BufferedReader(new InputStreamReader(new FileInputStream(urlsFile), StandardCharsets.UTF_8));
       String urlStr = null;
       while ((urlStr = buffRead.readLine()) != null) {
 
@@ -166,22 +165,24 @@ public class ResolveUrls {
     OptionBuilder.withArgName("help");
     OptionBuilder.withDescription("show this help message");
     Option helpOpts = OptionBuilder.create("help");
-    options.addOption(helpOpts);
 
     OptionBuilder.withArgName("urls");
     OptionBuilder.hasArg();
     OptionBuilder.withDescription("the urls file to check");
     Option urlOpts = OptionBuilder.create("urls");
-    options.addOption(urlOpts);
 
     OptionBuilder.withArgName("numThreads");
     OptionBuilder.hasArgs();
     OptionBuilder.withDescription("the number of threads to use");
     Option numThreadOpts = OptionBuilder.create("numThreads");
+
+    options.addOption(helpOpts);
+    options.addOption(urlOpts);
     options.addOption(numThreadOpts);
 
     CommandLineParser parser = new GnuParser();
     try {
+
       // parse out common line arguments
       CommandLine line = parser.parse(options, args);
       if (line.hasOption("help") || !line.hasOption("urls")) {
@@ -203,4 +204,5 @@ public class ResolveUrls {
       LOG.error("ResolveUrls: " + StringUtils.stringifyException(e));
     }
   }
+
 }

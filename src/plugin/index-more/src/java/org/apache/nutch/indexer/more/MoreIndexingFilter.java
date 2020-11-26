@@ -1,79 +1,42 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.nutch.indexer.more;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.nutch.metadata.Metadata;
-
-import org.apache.nutch.net.protocols.HttpDateFormat;
-import org.apache.nutch.net.protocols.Response;
-
-import org.apache.nutch.parse.Parse;
-
-import org.apache.nutch.indexer.IndexingFilter;
-import org.apache.nutch.indexer.IndexingException;
-import org.apache.nutch.indexer.NutchDocument;
-
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.util.MimeUtil;
-import org.apache.tika.Tika;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-
-import java.text.ParseException;
-
 import java.lang.invoke.MethodHandles;
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.text.ParseException;
+import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.lang.time.DateUtils;
-
-import java.io.File;
-import java.net.URL;
-import java.util.List;
-import java.util.ArrayList;
-import org.apache.commons.io.FileUtils;
-import java.nio.charset.StandardCharsets;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.indexer.IndexingException;
+import org.apache.nutch.indexer.IndexingFilter;
+import org.apache.nutch.indexer.NutchDocument;
+import org.apache.nutch.metadata.HttpHeaders;
+import org.apache.nutch.net.protocols.HttpDateFormat;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.MimeUtil;
+import org.apache.solr.common.util.DateUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Add (or reset) a few metaData properties as respective fields (if they are
  * available), so that they can be accurately used within the search index.
- *
+ * 
  * 'lastModifed' is indexed to support query by date, 'contentLength' obtains
  * content length from the HTTP header, 'type' field is indexed to support query
  * by type and finally the 'title' field is an attempt to reset the title if a
  * content-disposition hint exists. The logic is that such a presence is
  * indicative that the content provider wants the filename therein to be used as
  * the title.
- *
+ * 
  * Still need to make content-length searchable!
- *
+ * 
  * @author John Xing
  */
 
@@ -83,100 +46,98 @@ public class MoreIndexingFilter implements IndexingFilter {
 
   /** Get the MimeTypes resolver instance. */
   private MimeUtil MIME;
-  private Tika tika = new Tika();
 
-  /** Map for mime-type substitution */
-  private HashMap<String, String> mimeMap = null;
-  private boolean mapMimes = false;
-  private String mapFieldName;
+  private static Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
 
-  /** Date-styles used to parse date. */
-  private String[] defaultDateStyles = new String[] {
-            "EEE MMM dd HH:mm:ss yyyy", "EEE MMM dd HH:mm:ss yyyy zzz",
-            "EEE MMM dd HH:mm:ss zzz yyyy", "EEE, MMM dd HH:mm:ss yyyy zzz",
-            "EEE, dd MMM yyyy HH:mm:ss zzz", "EEE,dd MMM yyyy HH:mm:ss zzz",
-            "EEE, dd MMM yyyy HH:mm:sszzz", "EEE, dd MMM yyyy HH:mm:ss",
-            "EEE, dd-MMM-yy HH:mm:ss zzz", "yyyy/MM/dd HH:mm:ss.SSS zzz",
-            "yyyy/MM/dd HH:mm:ss.SSS", "yyyy/MM/dd HH:mm:ss zzz", "yyyy/MM/dd",
-            "yyyy.MM.dd HH:mm:ss", "yyyy-MM-dd HH:mm",
-            "MMM dd yyyy HH:mm:ss. zzz", "MMM dd yyyy HH:mm:ss zzz",
-            "dd.MM.yyyy HH:mm:ss zzz", "dd MM yyyy HH:mm:ss zzz",
-            "dd.MM.yyyy; HH:mm:ss", "dd.MM.yyyy HH:mm:ss", "dd.MM.yyyy zzz",
-            "yyyy-MM-dd'T'HH:mm:ssXXX" };
-  private String[] dateStyles = null;
+  static {
+    FIELDS.add(WebPage.Field.HEADERS);
+    FIELDS.add(WebPage.Field.CONTENT_TYPE);
+    FIELDS.add(WebPage.Field.MODIFIED_TIME);
+  }
 
-  public NutchDocument filter(NutchDocument doc, Parse parse, Text url,
-      CrawlDatum datum, Inlinks inlinks) throws IndexingException {
-
-    String url_s = url.toString();
-
-    addTime(doc, parse.getData(), url_s, datum);
-    addLength(doc, parse.getData());
-    addType(doc, parse.getData(), url_s, datum);
-    resetTitle(doc, parse.getData());
-
+  @Override
+  public NutchDocument filter(NutchDocument doc, String url, WebPage page)
+      throws IndexingException {
+    addTime(doc, page, url);
+    addLength(doc, page, url);
+    addType(doc, page, url);
+    resetTitle(doc, page, url);
     return doc;
   }
 
   // Add time related meta info. Add last-modified if present. Index date as
   // last-modified, or, if that's not present, use fetch time.
-  private NutchDocument addTime(NutchDocument doc, ParseData data, String url,
-      CrawlDatum datum) {
+  private NutchDocument addTime(NutchDocument doc, WebPage page, String url) {
     long time = -1;
-
-    String lastModified = data.getMeta(Metadata.LAST_MODIFIED);
+    CharSequence lastModified = page.getHeaders().get(
+        new Utf8(HttpHeaders.LAST_MODIFIED));
     if (lastModified != null) { // try parse last-modified
-      time = getTime(lastModified, url); // use as time
-                                         // store as Date
+      time = getTime(lastModified.toString(), url); // use as time
       if (time > -1) {
-        doc.add("lastModified", new Date(time));
+        String formlastModified = DateUtil.getThreadLocalDateFormat()
+            .format(new Date(time));
+        // store as string
+        doc.add("lastModified", formlastModified);
       }
     }
 
-    if (time == -1) { // if no last-modified specified in HTTP header
-      time = datum.getModifiedTime(); // use value in CrawlDatum
-      if (time <= 0) { // if also unset
-        time = datum.getFetchTime(); // use time the fetch took place (fetchTime
-                                     // of fetchDatum)
-      }
+    if (time == -1) { // if no last-modified
+      time = page.getModifiedTime(); // use Modified time
     }
+
+    String dateString = DateUtil.getThreadLocalDateFormat().format(
+        new Date(time));
 
     // un-stored, indexed and un-tokenized
-    doc.add("date", new Date(time));
+    doc.add("date", dateString);
+
     return doc;
   }
 
   private long getTime(String date, String url) {
     long time = -1;
-
     try {
       time = HttpDateFormat.toLong(date);
     } catch (ParseException e) {
       // try to parse it as date in alternative format
       try {
-        Date parsedDate = DateUtils.parseDate(date, dateStyles);
+        Date parsedDate = DateUtils.parseDate(date,
+            new String[] { "EEE MMM dd HH:mm:ss yyyy",
+                "EEE MMM dd HH:mm:ss yyyy zzz", "EEE MMM dd HH:mm:ss zzz yyyy",
+                "EEE, dd MMM yyyy HH:mm:ss zzz",
+                "EEE,dd MMM yyyy HH:mm:ss zzz", "EEE, dd MMM yyyy HH:mm:sszzz",
+                "EEE, dd MMM yyyy HH:mm:ss", "EEE, dd-MMM-yy HH:mm:ss zzz",
+                "yyyy/MM/dd HH:mm:ss.SSS zzz", "yyyy/MM/dd HH:mm:ss.SSS",
+                "yyyy/MM/dd HH:mm:ss zzz", "yyyy/MM/dd", "yyyy.MM.dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm", "MMM dd yyyy HH:mm:ss. zzz",
+                "MMM dd yyyy HH:mm:ss zzz", "dd.MM.yyyy HH:mm:ss zzz",
+                "dd MM yyyy HH:mm:ss zzz", "dd.MM.yyyy; HH:mm:ss",
+                "dd.MM.yyyy HH:mm:ss", "dd.MM.yyyy zzz",
+                "yyyy-MM-dd'T'HH:mm:ssXXX" });
         time = parsedDate.getTime();
-        LOG.info(url + ": parsed date: " + date +" to: " + time);
+        // if (LOG.isWarnEnabled()) {
+        // LOG.warn(url + ": parsed date: " + date +" to:"+time);
+        // }
       } catch (Exception e2) {
         if (LOG.isWarnEnabled()) {
           LOG.warn(url + ": can't parse erroneous date: " + date);
         }
       }
     }
-
     return time;
   }
 
   // Add Content-Length
-  private NutchDocument addLength(NutchDocument doc, ParseData data) {
-    String contentLength = data.getMeta(Response.CONTENT_LENGTH);
-
+  private NutchDocument addLength(NutchDocument doc, WebPage page, String url) {
+    CharSequence contentLength = page.getHeaders().get(
+        new Utf8(HttpHeaders.CONTENT_LENGTH));
     if (contentLength != null) {
       // NUTCH-1010 ContentLength not trimmed
-      String trimmed = contentLength.trim();
+      String trimmed = contentLength.toString().trim();
       if (!trimmed.isEmpty())
         doc.add("contentLength", trimmed);
     }
+
     return doc;
   }
 
@@ -186,34 +147,25 @@ public class MoreIndexingFilter implements IndexingFilter {
    * primaryType and subType to field "type" as un-stored, indexed and
    * un-tokenized, so that search results can be confined by contentType or its
    * primaryType or its subType.
-   * </p>
+   *
    * <p>
    * For example, if contentType is application/vnd.ms-powerpoint, search can be
    * done with one of the following qualifiers
    * type:application/vnd.ms-powerpoint type:application type:vnd.ms-powerpoint
    * all case insensitive. The query filter is implemented in
    * {@link TypeQueryFilter}.
-   * </p>
    *
+   * 
    * @param doc
    * @param data
    * @param url
    * @return
    */
-  private NutchDocument addType(NutchDocument doc, ParseData data, String url,
-      CrawlDatum datum) {
+  private NutchDocument addType(NutchDocument doc, WebPage page, String url) {
     String mimeType = null;
-    String contentType = null;
-
-    Writable tcontentType = datum.getMetaData().get(
-        new Text(Response.CONTENT_TYPE));
-
-    if (tcontentType != null) {
-      contentType = tcontentType.toString();
-    } else {
-      contentType = data.getMeta(Response.CONTENT_TYPE);
-    }
-
+    CharSequence contentType = page.getContentType();
+    if (contentType == null)
+      contentType = page.getHeaders().get(new Utf8(HttpHeaders.CONTENT_TYPE));
     if (contentType == null) {
       // Note by Jerome Charron on 20050415:
       // Content Type not solved by a previous plugin
@@ -226,10 +178,9 @@ public class MoreIndexingFilter implements IndexingFilter {
       // } else {
       // contentType = MIME.getMimeType(url);
       // }
-
-      mimeType = tika.detect(url);
+      mimeType = MIME.getMimeType(url);
     } else {
-      mimeType = MIME.forName(MimeUtil.cleanMimeType(contentType));
+      mimeType = MIME.forName(MimeUtil.cleanMimeType(contentType.toString()));
     }
 
     // Checks if we solved the content-type.
@@ -237,21 +188,11 @@ public class MoreIndexingFilter implements IndexingFilter {
       return doc;
     }
 
-    // Check if we have to map mime types
-    if (mapMimes && mimeMap.containsKey(mimeType)) {
-      if (mapFieldName != null) {
-        doc.add(mapFieldName, mimeMap.get(mimeType));
-      } else {
-        mimeType = mimeMap.get(mimeType);
-      }
-    }
-
-    contentType = mimeType;
-    doc.add("type", contentType);
+    doc.add("type", mimeType);
 
     // Check if we need to split the content type in sub parts
     if (conf.getBoolean("moreIndexingFilter.indexMimeTypeParts", true)) {
-      String[] parts = getParts(contentType);
+      String[] parts = getParts(mimeType);
 
       for (String part : parts) {
         doc.add("type", part);
@@ -266,7 +207,7 @@ public class MoreIndexingFilter implements IndexingFilter {
 
   /**
    * Utility method for splitting mime type into type and subtype.
-   *
+   * 
    * @param mimeType
    * @return
    */
@@ -283,21 +224,22 @@ public class MoreIndexingFilter implements IndexingFilter {
   // Content-Disposition: inline; filename="foo.ppt"
   private Configuration conf;
 
-  static Pattern[] patterns = { null, null };
+  static Pattern patterns[] = { null, null };
 
   static {
     try {
       // order here is important
-      patterns[0] = Pattern.compile("\\bfilename=['\"]([^\"]+)");
+      patterns[0] = Pattern.compile("\\bfilename=['\"](.+)['\"]");
       patterns[1] = Pattern.compile("\\bfilename=(\\S+)\\b");
     } catch (PatternSyntaxException e) {
       // just ignore
     }
   }
 
-  private NutchDocument resetTitle(NutchDocument doc, ParseData data) {
-    String contentDisposition = data.getMeta(Metadata.CONTENT_DISPOSITION);
-    if (contentDisposition == null || doc.getFieldValue("title") != null)
+  private NutchDocument resetTitle(NutchDocument doc, WebPage page, String url) {
+    CharSequence contentDisposition = page.getHeaders().get(
+        new Utf8(HttpHeaders.CONTENT_DISPOSITION));
+    if (contentDisposition == null)
       return doc;
 
     for (int i = 0; i < patterns.length; i++) {
@@ -311,82 +253,21 @@ public class MoreIndexingFilter implements IndexingFilter {
     return doc;
   }
 
+  public void addIndexBackendOptions(Configuration conf) {
+  }
+
   public void setConf(Configuration conf) {
     this.conf = conf;
     MIME = new MimeUtil(conf);
-
-    if (conf.getBoolean("moreIndexingFilter.mapMimeTypes", false)) {
-      mapMimes = true;
-
-      mapFieldName = conf.get("moreIndexingFilter.mapMimeTypes.field");
-
-      // Load the mapping
-      try {
-        readConfiguration();
-      } catch (Exception e) {
-        LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
-      }
-    }
-
-    URL dateStylesResource = conf.getResource("date-styles.txt");
-    if (dateStylesResource == null) {
-      dateStyles = defaultDateStyles;
-      LOG.warn("Can't find resource: date-styles.txt - Defaults will be used.");
-    } else {
-      try {
-        List<String> usedLines = new ArrayList<String>();
-        for (String dateStyle: FileUtils.readLines(new File(dateStylesResource.getFile()),
-            StandardCharsets.US_ASCII)) {
-          if (StringUtils.isBlank(dateStyle) || dateStyle.startsWith("#")) {
-            continue;
-          }
-
-          usedLines.add(StringUtils.trim(dateStyle));
-        }
-
-        dateStyles = new String[usedLines.size()];
-        usedLines.toArray(dateStyles);
-      } catch (IOException e) {
-        LOG.error("Failed to load resource: date-styles.txt");
-      }
-    }
   }
 
   public Configuration getConf() {
     return this.conf;
   }
 
-  private void readConfiguration() throws IOException {
-    LOG.info("Reading content type mappings from file contenttype-mapping.txt");
-    try (BufferedReader reader = new BufferedReader(
-        conf.getConfResourceAsReader("contenttype-mapping.txt"))) {
-      String line;
-      String[] parts;
-      boolean formatWarningShown = false;
-
-      mimeMap = new HashMap<String, String>();
-
-      while ((line = reader.readLine()) != null) {
-        if (StringUtils.isBlank(line) || line.startsWith("#")) {
-          continue;
-        }
-
-        line = line.trim();
-        parts = line.split("\t");
-
-        // Must be at least two parts
-        if (parts.length > 1) {
-          for (int i = 1; i < parts.length; i++) {
-            mimeMap.put(parts[i].trim(), parts[0].trim());
-          }
-        } else {
-          LOG.warn("Wrong format of line: {}", line);
-          if (!formatWarningShown) {
-            LOG.warn("Expected format: <target type> <tab> <type1> [<tab> <type2> ...]");
-            formatWarningShown = true;
-          }
-        }
-      }
-    }
+  @Override
+  public Collection<Field> getFields() {
+    return FIELDS;
   }
+
 }

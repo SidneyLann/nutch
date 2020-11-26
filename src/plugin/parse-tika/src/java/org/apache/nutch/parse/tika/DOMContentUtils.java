@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse.tika;
 
 import java.net.MalformedURLException;
@@ -21,17 +22,13 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Locale;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.nutch.parse.Outlink;
 import org.apache.nutch.util.NodeWalker;
 import org.apache.nutch.util.URLUtil;
-import org.apache.tika.sax.Link;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -44,10 +41,6 @@ import org.w3c.dom.NodeList;
  * 
  */
 public class DOMContentUtils {
-
-  private String srcTagMetaName;
-  private boolean keepNodenames;
-  private Set<String> blockNodes;
 
   private static class LinkParams {
     private String elName;
@@ -66,8 +59,6 @@ public class DOMContentUtils {
   }
 
   private HashMap<String, LinkParams> linkParams = new HashMap<String, LinkParams>();
-  private HashSet<String> ignoredTags = new HashSet<String>();
-  private Configuration conf;
 
   public DOMContentUtils(Configuration conf) {
     setConf(conf);
@@ -77,7 +68,6 @@ public class DOMContentUtils {
     // forceTags is used to override configurable tag ignoring, later on
     Collection<String> forceTags = new ArrayList<String>(1);
 
-    this.conf = conf;
     linkParams.clear();
     linkParams.put("a", new LinkParams("a", "href", 1));
     linkParams.put("area", new LinkParams("area", "href", 0));
@@ -91,21 +81,13 @@ public class DOMContentUtils {
     linkParams.put("script", new LinkParams("script", "src", 0));
     linkParams.put("link", new LinkParams("link", "href", 0));
     linkParams.put("img", new LinkParams("img", "src", 0));
-    linkParams.put("source", new LinkParams("source", "src", 0));
 
     // remove unwanted link tags from the linkParams map
     String[] ignoreTags = conf.getStrings("parser.html.outlinks.ignore_tags");
     for (int i = 0; ignoreTags != null && i < ignoreTags.length; i++) {
-      ignoredTags.add(ignoreTags[i].toLowerCase());
       if (!forceTags.contains(ignoreTags[i]))
         linkParams.remove(ignoreTags[i]);
     }
-
-    // NUTCH-2433 - Should we keep the html node where the outlinks are found?
-    srcTagMetaName = this.conf
-        .get("parser.html.outlinks.htmlnode_metadata_name");
-    keepNodenames = (srcTagMetaName != null && srcTagMetaName.length() > 0);
-    blockNodes = new HashSet<>(conf.getTrimmedStringCollection("parser.html.line.separators"));
   }
 
   /**
@@ -152,13 +134,6 @@ public class DOMContentUtils {
       Node currentNode = walker.nextNode();
       String nodeName = currentNode.getNodeName();
       short nodeType = currentNode.getNodeType();
-      Node previousSibling = currentNode.getPreviousSibling();
-      if (previousSibling != null
-          && blockNodes.contains(previousSibling.getNodeName().toLowerCase())) {
-        appendParagraphSeparator(sb);
-      } else if (blockNodes.contains(nodeName.toLowerCase())) {
-        appendParagraphSeparator(sb);
-      }
 
       if ("script".equalsIgnoreCase(nodeName)) {
         walker.skipChildren();
@@ -268,7 +243,7 @@ public class DOMContentUtils {
   }
 
   /** If Node contains a BASE tag then it's HREF is returned. */
-  public String getBase(Node node) {
+  URL getBase(Node node) {
 
     NodeWalker walker = new NodeWalker(node);
 
@@ -290,7 +265,10 @@ public class DOMContentUtils {
           for (int i = 0; i < attrs.getLength(); i++) {
             Node attr = attrs.item(i);
             if ("href".equalsIgnoreCase(attr.getNodeName())) {
-              return attr.getNodeValue();
+              try {
+                return new URL(attr.getNodeValue());
+              } catch (MalformedURLException e) {
+              }
             }
           }
         }
@@ -388,7 +366,7 @@ public class DOMContentUtils {
 
       if (nodeType == Node.ELEMENT_NODE) {
 
-        nodeName = nodeName.toLowerCase();
+        nodeName = nodeName.toLowerCase(Locale.ROOT);
         LinkParams params = (LinkParams) linkParams.get(nodeName);
         if (params != null) {
           if (!shouldThrowAwayLink(currentNode, children, childLen, params)) {
@@ -417,17 +395,8 @@ public class DOMContentUtils {
               try {
 
                 URL url = URLUtil.resolveURL(base, target);
-                Outlink outlink = new Outlink(url.toString(), linkText
-                    .toString().trim());
-                outlinks.add(outlink);
-
-                // NUTCH-2433 - Keep the node name where the URL was found into
-                // the outlink metadata
-                if (keepNodenames) {
-                  MapWritable metadata = new MapWritable();
-                  metadata.put(new Text(srcTagMetaName), new Text(nodeName));
-                  outlink.setMetadata(metadata);
-                }
+                outlinks.add(new Outlink(url.toString(), linkText.toString()
+                    .trim()));
               } catch (MalformedURLException e) {
                 // don't care
               }
@@ -440,34 +409,4 @@ public class DOMContentUtils {
     }
   }
 
-  // This one is used by NUTCH-1918
-  public void getOutlinks(URL base, ArrayList<Outlink> outlinks,
-      List<Link> tikaExtractedOutlinks) {
-    String target = null;
-    String anchor = null;
-    boolean noFollow = false;
-
-    for (Link link : tikaExtractedOutlinks) {
-      target = link.getUri();
-      noFollow = (link.getRel().toLowerCase().equals("nofollow")) ? true
-          : false;
-      anchor = link.getText();
-
-      if (!ignoredTags.contains(link.getType())) {
-        if (target != null && !noFollow) {
-          try {
-            URL url = URLUtil.resolveURL(base, target);
-
-            // clean the anchor
-            anchor = anchor.replaceAll("\\s+", " ");
-            anchor = anchor.trim();
-
-            outlinks.add(new Outlink(url.toString(), anchor));
-          } catch (MalformedURLException e) {
-            // don't care
-          }
-        }
-      }
-    }
-  }
 }

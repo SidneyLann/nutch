@@ -1,10 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Copyright 2005 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -14,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util;
 
 import java.io.ByteArrayOutputStream;
@@ -24,6 +24,7 @@ import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 import java.util.zip.DeflaterOutputStream;
 
+// Commons Logging imports
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,13 +128,13 @@ public class DeflateUtils {
     try {
       outStream.write(in);
     } catch (Exception e) {
-      LOG.error("Error compressing: ", e);
+      LOG.error("Failed to implement outStream.write (input)", e);
     }
 
     try {
       outStream.close();
     } catch (IOException e) {
-      LOG.error("Error closing: ", e);
+      LOG.error("Failed to implement outStream.close", e);
     }
 
     return byteOut.toByteArray();

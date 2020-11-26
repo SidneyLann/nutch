@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,6 +16,7 @@
  */
 package org.apache.nutch.urlfilter.regex;
 
+// JDK imports
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -71,12 +72,6 @@ public class RegexURLFilter extends RegexURLFilterBase {
   protected RegexRule createRule(boolean sign, String regex) {
     return new Rule(sign, regex);
   }
-  
-  protected RegexRule createRule(boolean sign, String regex, String hostOrDomain) {
-    return new Rule(sign, regex, hostOrDomain);
-  }
-  
-  
 
   /*
    * ------------------------------------ * </implementation:RegexURLFilterBase>
@@ -94,11 +89,7 @@ public class RegexURLFilter extends RegexURLFilterBase {
     private Pattern pattern;
 
     Rule(boolean sign, String regex) {
-      this(sign, regex, null);
-    }
-    
-    Rule(boolean sign, String regex, String hostOrDomain) {
-      super(sign, regex, hostOrDomain);
+      super(sign, regex);
       pattern = Pattern.compile(regex);
     }
 

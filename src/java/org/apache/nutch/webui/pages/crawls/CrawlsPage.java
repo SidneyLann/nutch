@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -72,7 +72,7 @@ public class CrawlsPage extends AbstractBasePage<Void> {
 
       @Override
       protected Iterator<IModel<Crawl>> getItemModels() {
-        return new CpmIteratorAdapter<>(crawlService.getCrawls());
+        return new CpmIteratorAdapter<Crawl>(crawlService.getCrawls());
       }
 
       @Override
@@ -90,7 +90,7 @@ public class CrawlsPage extends AbstractBasePage<Void> {
     add(new AjaxLink<Crawl>("newCrawl") {
       @Override
       public void onClick(AjaxRequestTarget target) {
-        editCrawl(target, new CompoundPropertyModel<>(createNewCrawl()));
+        editCrawl(target, new CompoundPropertyModel<Crawl>(createNewCrawl()));
       }
     });
   }

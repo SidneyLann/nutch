@@ -17,7 +17,7 @@
 
 /**
  * Helper classes related to the {@link org.apache.nutch.protocol.Protocol Protocol}
- * interface, see also {@link org.apache.nutch.protocol}.
+ * interface, sea also {@link org.apache.nutch.protocol}.
  */
 package org.apache.nutch.net.protocols;
 

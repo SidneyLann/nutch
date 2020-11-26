@@ -49,7 +49,7 @@ public class PluginManifestParser {
   private static final String ATTR_CLASS = "class";
   private static final String ATTR_ID = "id";
 
-  public static final Logger LOG = PluginRepository.LOG;
+  private static final Logger LOG = PluginRepository.LOG;
 
   private static final boolean WINDOWS = System.getProperty("os.name")
       .startsWith("Windows");
@@ -72,7 +72,7 @@ public class PluginManifestParser {
    * @return A {@link Map} of all found {@link PluginDescriptor}s.
    */
   public Map<String, PluginDescriptor> parsePluginFolder(String[] pluginFolders) {
-    Map<String, PluginDescriptor> map = new HashMap<>();
+    Map<String, PluginDescriptor> map = new HashMap<String, PluginDescriptor>();
 
     if (pluginFolders == null) {
       throw new IllegalArgumentException("plugin.folders is not defined");

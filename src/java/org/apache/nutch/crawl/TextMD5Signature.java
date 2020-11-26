@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,28 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.crawl;
 
+import java.util.Collection;
+import java.util.HashSet;
+
 import org.apache.hadoop.io.MD5Hash;
-import org.apache.nutch.parse.Parse;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.storage.WebPage;
 
 /**
- * Implementation of a page signature. It calculates an MD5 hash of the textual
- * content of a page. In case there is no content, it calculates a hash from the
- * page's URL.
+ * Default implementation of a page signature. It calculates an MD5 hash of the
+ * textual content of a page. In case there is no text, it calculates a hash
+ * from the page's fetched content.
  */
 public class TextMD5Signature extends Signature {
 
+  private final static Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.TEXT);
+  }
+
   Signature fallback = new MD5Signature();
 
-  public byte[] calculate(Content content, Parse parse) {
-    String text = parse.getText();
+  @Override
+  public byte[] calculate(WebPage page) {
+    CharSequence text = page.getText();
 
     if (text == null || text.length() == 0) {
-      return fallback.calculate(content, parse);
+      return fallback.calculate(page);
     }
 
-    return MD5Hash.digest(text).getDigest();
+    return MD5Hash.digest(text.toString()).getDigest();
+  }
+
+  @Override
+  public Collection<WebPage.Field> getFields() {
+    Collection<WebPage.Field> fields = new HashSet<WebPage.Field>(FIELDS);
+    fields.addAll(fallback.getFields());
+    return fields;
   }
 }

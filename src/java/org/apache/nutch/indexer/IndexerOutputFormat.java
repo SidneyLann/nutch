@@ -17,52 +17,75 @@
 package org.apache.nutch.indexer;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
 
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class IndexerOutputFormat
-    extends FileOutputFormat<Text, NutchIndexAction> {
-
-  private static final Logger LOG = LoggerFactory
-      .getLogger(MethodHandles.lookup().lookupClass());
+public class IndexerOutputFormat extends OutputFormat<String, NutchDocument> {
 
   @Override
-  public RecordWriter<Text, NutchIndexAction> getRecordWriter(
-      TaskAttemptContext context) throws IOException {
+  public RecordWriter<String, NutchDocument> getRecordWriter(
+      TaskAttemptContext job) throws IOException, InterruptedException {
 
-    Configuration conf = context.getConfiguration();
-    final IndexWriters writers = IndexWriters.get(conf);
+    // final IndexWriter[] writers =
+    // NutchIndexWriterFactory.getNutchIndexWriters(job.getConfiguration());
 
-    String name = getUniqueFile(context, "part", "");
-    writers.open(conf, name);
-    LOG.info(writers.describe());
+    final IndexWriters writers = new IndexWriters(job.getConfiguration());
 
-    return new RecordWriter<Text, NutchIndexAction>() {
+    // for (final IndexWriter writer : writers) {
+    // writer.open(job);
+    // }
+    writers.open(job.getConfiguration());
 
-      public void close(TaskAttemptContext context) throws IOException {
-        // do the commits once and for all the reducers in one go
-        boolean noCommit = conf
-            .getBoolean(IndexerMapReduce.INDEXER_NO_COMMIT, false);
-        if (!noCommit) {
-          writers.commit();
-        }
-        writers.close();
+    return new RecordWriter<String, NutchDocument>() {
+
+      @Override
+      public void write(String key, NutchDocument doc) throws IOException {
+        // TODO: Check Write Status for delete or write.
+        writers.write(doc);
       }
 
-      public void write(Text key, NutchIndexAction indexAction)
+      @Override
+      public void close(TaskAttemptContext context) throws IOException,
+          InterruptedException {
+        writers.close();
+      }
+    };
+  }
+
+  @Override
+  public void checkOutputSpecs(JobContext jobContext) throws IOException,
+      InterruptedException {
+  }
+
+  @Override
+  public OutputCommitter getOutputCommitter(TaskAttemptContext arg0)
+      throws IOException, InterruptedException {
+    // return an empty outputcommitter
+    return new OutputCommitter() {
+      @Override
+      public void setupTask(TaskAttemptContext arg0) throws IOException {
+      }
+
+      @Override
+      public void setupJob(JobContext arg0) throws IOException {
+      }
+
+      @Override
+      public boolean needsTaskCommit(TaskAttemptContext arg0)
           throws IOException {
-        if (indexAction.action == NutchIndexAction.ADD) {
-          writers.write(indexAction.doc);
-        } else if (indexAction.action == NutchIndexAction.DELETE) {
-          writers.delete(key.toString());
-        }
+        return false;
+      }
+
+      @Override
+      public void commitTask(TaskAttemptContext arg0) throws IOException {
+      }
+
+      @Override
+      public void abortTask(TaskAttemptContext arg0) throws IOException {
       }
     };
   }

@@ -1,4 +1,10 @@
 /*
+ * XXX ab@apache.org: This class is copied verbatim from Xalan-J 2.6.0
+ * XXX distribution, org.apache.xml.utils.XMLCharacterRecognizer,
+ * XXX in order to avoid dependency on Xalan.
+ */
+
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -13,12 +19,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-/*
- * XXX ab@apache.org: This class is copied verbatim from Xalan-J 2.6.0
- * XXX distribution, org.apache.xml.utils.XMLCharacterRecognizer,
- * XXX in order to avoid dependency on Xalan.
  */
 /*
  * $Id: XMLCharacterRecognizer.java 823614 2009-10-09 17:02:32Z ab $
@@ -35,7 +35,7 @@ class XMLCharacterRecognizer {
    * Returns whether the specified <var>ch</var> conforms to the XML 1.0
    * definition of whitespace. Refer to <A
    * href="http://www.w3.org/TR/1998/REC-xml-19980210#NT-S"> the definition of
-   * <CODE>S</CODE></A> for details.
+   * <code>S</code></A> for details.
    * 
    * @param ch
    *          Character to check as XML whitespace.

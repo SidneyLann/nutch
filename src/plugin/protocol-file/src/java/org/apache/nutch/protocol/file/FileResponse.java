@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.file;
 
-import java.net.URL;
+// JDK imports
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.net.URL;
 
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.protocol.Content;
-import org.apache.nutch.util.MimeUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.net.protocols.HttpDateFormat;
 import org.apache.nutch.net.protocols.Response;
-
-import org.apache.tika.Tika;
-
-import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.protocol.Content;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.MimeUtil;
 
 /************************************
  * FileResponse.java mimics file replies as http response. It tries its best to
@@ -66,7 +66,7 @@ public class FileResponse {
   private final File file;
   private Configuration conf;
 
-  private Tika tika;
+  private MimeUtil MIME;
 
   /** Returns the response code. */
   public int getCode() {
@@ -87,17 +87,7 @@ public class FileResponse {
         getHeader(Response.CONTENT_TYPE), headers, this.conf);
   }
 
-  /**
-   * Default public constructor
-   * 
-   * @param url
-   * @param datum
-   * @param file
-   * @param conf
-   * @throws FileException
-   * @throws IOException
-   */
-  public FileResponse(URL url, CrawlDatum datum, File file, Configuration conf)
+  public FileResponse(URL url, WebPage page, File file, Configuration conf)
       throws FileException, IOException {
 
     this.orig = url.toString();
@@ -105,21 +95,22 @@ public class FileResponse {
     this.file = file;
     this.conf = conf;
 
-    tika = new Tika();
+    MIME = new MimeUtil(conf);
 
     if (!"file".equals(url.getProtocol()))
       throw new FileException("Not a file url:" + url);
 
     if (File.LOG.isTraceEnabled()) {
-      File.LOG.trace("fetching {}", url);
+      File.LOG.trace("fetching " + url);
     }
 
-    if (url.getQuery() != null) {
-      File.LOG.warn(
-          "file:// URL may not include a query (query part ignored): {}", url);
+    if (url.getPath() != url.getFile()) {
+      if (File.LOG.isWarnEnabled()) {
+        File.LOG.warn("url.getPath() != url.getFile(): " + url);
+      }
     }
 
-    String path = url.getPath().isEmpty() ? "/" : url.getPath();
+    String path = "".equals(url.getPath()) ? "/" : url.getPath();
 
     try {
       // specify the encoding via the config later?
@@ -151,19 +142,13 @@ public class FileResponse {
       if (!f.equals(f.getCanonicalFile())) {
         // set headers
         // hdrs.put("Location", f.getCanonicalFile().toURI());
-        //
-        // we want to automatically escape characters that are illegal in URLs.
-        // It is recommended that new code convert an abstract pathname into a
-        // URL
-        // by first converting it into a URI, via the toURI method, and then
-        // converting the URI into a URL via the URI.toURL method.
         headers.set(Response.LOCATION, f.getCanonicalFile().toURI().toURL()
             .toString());
 
         this.code = 300; // http redirect
         return;
       }
-      if (f.lastModified() <= datum.getModifiedTime()) {
+      if (f.lastModified() <= page.getModifiedTime()) {
         this.code = 304;
         this.headers.set("Last-Modified",
             HttpDateFormat.toString(f.lastModified()));
@@ -222,24 +207,19 @@ public class FileResponse {
     is.close();
 
     // set headers
-    headers.set(Response.CONTENT_LENGTH, Long.valueOf(size).toString());
+    headers.set(Response.CONTENT_LENGTH, new Long(size).toString());
     headers.set(Response.LAST_MODIFIED,
         HttpDateFormat.toString(f.lastModified()));
 
-    String mimeType = tika.detect(f);
-
-    headers.set(Response.CONTENT_TYPE, mimeType != null ? mimeType : "");
+    String mimeType = MIME.getMimeType(f);
+    String mimeTypeString = mimeType != null ? mimeType.toString() : "";
+    headers.set(Response.CONTENT_TYPE, mimeTypeString);
 
     // response code
     this.code = 200; // http OK
   }
 
-  /**
-   * get dir list as http response
-   * 
-   * @param f
-   * @throws IOException
-   */
+  // get dir list as http response
   private void getDirAsHttpResponse(java.io.File f) throws IOException {
 
     String path = f.toString();
@@ -251,7 +231,7 @@ public class FileResponse {
 
     // set headers
     headers.set(Response.CONTENT_LENGTH,
-        Integer.valueOf(this.content.length).toString());
+        new Integer(this.content.length).toString());
     headers.set(Response.CONTENT_TYPE, "text/html");
     headers.set(Response.LAST_MODIFIED,
         HttpDateFormat.toString(f.lastModified()));
@@ -260,14 +240,7 @@ public class FileResponse {
     this.code = 200; // http OK
   }
 
-  /**
-   * generate html page from dir list
-   * 
-   * @param list
-   * @param path
-   * @param includeDotDot
-   * @return
-   */
+  // generate html page from dir list
   private byte[] list2html(java.io.File[] list, String path,
       boolean includeDotDot) {
 
@@ -303,7 +276,7 @@ public class FileResponse {
 
     x.append("</pre></body></html>\n");
 
-    return new String(x).getBytes();
+    return new String(x).getBytes(StandardCharsets.UTF_8);
   }
 
 }

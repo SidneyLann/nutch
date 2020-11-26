@@ -22,8 +22,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.Locale;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -38,29 +42,25 @@ import org.apache.nutch.util.domain.DomainSuffix;
 /**
  * <p>
  * Filters URLs based on a file containing domain suffixes, domain names, and
- * hostnames. Only a URL that matches one of the suffixes, domains, or hosts
+ * hostnames. Only a url that matches one of the suffixes, domains, or hosts
  * present in the file is allowed.
- * </p>
  * 
  * <p>
- * URLs are checked in order of domain suffix, domain name, and hostname against
+ * Urls are checked in order of domain suffix, domain name, and hostname against
  * entries in the domain file. The domain file would be setup as follows with
  * one entry per line:
  * 
  * <pre>
- * com
- * apache.org
- * www.apache.org
+ * com apache.org www.apache.org
  * </pre>
  * 
  * <p>
  * The first line is an example of a filter that would allow all .com domains.
- * The second line allows all URLs from apache.org and all of its subdomains
+ * The second line allows all urls from apache.org and all of its subdomains
  * such as lucene.apache.org and hadoop.apache.org. The third line would allow
- * only URLs from www.apache.org. There is no specific ordering to entries. The
+ * only urls from www.apache.org. There is no specific ordering to entries. The
  * entries are from more general to more specific with the more general
- * overriding the more specific.
- * </p>
+ * overridding the more specific.
  * 
  * The domain file defaults to domain-urlfilter.txt in the classpath but can be
  * overridden using the:
@@ -74,6 +74,7 @@ import org.apache.nutch.util.domain.DomainSuffix;
  * </li>
  * </ul>
  * 
+ * the attribute "file" has higher precedence if defined.
  */
 public class DomainURLFilter implements URLFilter {
 
@@ -83,6 +84,7 @@ public class DomainURLFilter implements URLFilter {
   // read in attribute "file" of this plugin.
   private static String attributeFile = null;
   private Configuration conf;
+  private String domainFile = null;
   private Set<String> domainSet = new LinkedHashSet<String>();
 
   private void readConfiguration(Reader configReader) throws IOException {
@@ -93,9 +95,27 @@ public class DomainURLFilter implements URLFilter {
     while ((line = reader.readLine()) != null) {
       if (StringUtils.isNotBlank(line) && !line.startsWith("#")) {
         // add non-blank lines and non-commented lines
-        domainSet.add(StringUtils.lowerCase(line.trim()));
+        domainSet.add(StringUtils.lowerCase(line));
       }
     }
+  }
+
+  /**
+   * Default constructor.
+   */
+  public DomainURLFilter() {
+
+  }
+
+  /**
+   * Constructor that specifies the domain file to use.
+   * 
+   * @param domainFile
+   *          The domain file, overrides domain-urlfilter.text default.
+   * 
+   */
+  public DomainURLFilter(String domainFile) {
+    this.domainFile = domainFile;
   }
 
   /**
@@ -116,36 +136,44 @@ public class DomainURLFilter implements URLFilter {
       }
     }
 
-    if (attributeFile != null && attributeFile.trim().isEmpty()) {
+    // handle blank non empty input
+    if (attributeFile != null && attributeFile.trim().equals("")) {
       attributeFile = null;
     }
 
     if (attributeFile != null) {
-      LOG.info("Attribute \"file\" is defined for plugin {} as {}", pluginName, attributeFile);
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Attribute \"file\" is defined for plugin " + pluginName
+            + " as " + attributeFile);
+      }
+    } else {
+      if (LOG.isWarnEnabled()) {
+        LOG.warn("Attribute \"file\" is not defined in plugin.xml for plugin "
+            + pluginName);
+      }
     }
 
-    // precedence hierarchy for definition of filter rules
-    // (first non-empty definition takes precedence):
-    // 1. string rules defined by `urlfilter.domain.rules`
-    // 2. rule file name defined by `urlfilter.domain.file`
-    // 3. rule file name defined in plugin.xml (`attributeFile`)
+    // domain file and attribute "file" take precedence if defined
+    String file = conf.get("urlfilter.domain.file");
     String stringRules = conf.get("urlfilter.domain.rules");
-    String file = conf.get("urlfilter.domain.file", attributeFile);
+    if (domainFile != null) {
+      file = domainFile;
+    } else if (attributeFile != null) {
+      file = attributeFile;
+    }
     Reader reader = null;
     if (stringRules != null) { // takes precedence over files
       reader = new StringReader(stringRules);
     } else {
-      LOG.info("Reading {} rules file {}", pluginName, file);
       reader = conf.getConfResourceAsReader(file);
     }
     try {
       if (reader == null) {
-        // read local file
-        reader = new FileReader(file);
+        reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
       }
       readConfiguration(reader);
     } catch (IOException e) {
-      LOG.error("Error reading " + pluginName + " rule file " + file, e);
+      LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
     }
   }
 
@@ -154,13 +182,12 @@ public class DomainURLFilter implements URLFilter {
   }
 
   public String filter(String url) {
-    // https://issues.apache.org/jira/browse/NUTCH-2189
-    if (domainSet.size() == 0) return url;
-    
+
     try {
+
       // match for suffix, domain, and host in that order. more general will
       // override more specific
-      String domain = URLUtil.getDomainName(url).toLowerCase().trim();
+      String domain = URLUtil.getDomainName(url).toLowerCase(Locale.ROOT).trim();
       String host = URLUtil.getHost(url);
       String suffix = null;
       DomainSuffix domainSuffix = URLUtil.getDomainSuffix(url);

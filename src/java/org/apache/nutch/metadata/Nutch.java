@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,6 +16,7 @@
  */
 package org.apache.nutch.metadata;
 
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -26,92 +27,105 @@ import org.apache.hadoop.io.Text;
  */
 public interface Nutch {
 
-	public static final String ORIGINAL_CHAR_ENCODING = "OriginalCharEncoding";
+  public static final String ORIGINAL_CHAR_ENCODING = "OriginalCharEncoding";
 
-	public static final String CHAR_ENCODING_FOR_CONVERSION = "CharEncodingForConversion";
+  public static final String CHAR_ENCODING_FOR_CONVERSION = "CharEncodingForConversion";
 
-	public static final String SIGNATURE_KEY = "nutch.content.digest";
+  public static final String SIGNATURE_KEY = "nutch.content.digest";
 
-	public static final String SEGMENT_NAME_KEY = "nutch.segment.name";
+  public static final String BATCH_NAME_KEY = "nutch.batch.name";
 
-	public static final String SCORE_KEY = "nutch.crawl.score";
+  public static final String SCORE_KEY = "nutch.crawl.score";
 
-	public static final String GENERATE_TIME_KEY = "_ngt_";
+  public static final String GENERATE_TIME_KEY = "_ngt_";
 
-	public static final Text WRITABLE_GENERATE_TIME_KEY = new Text(
-			GENERATE_TIME_KEY);
+  public static final Text WRITABLE_GENERATE_TIME_KEY = new Text(
+      GENERATE_TIME_KEY);
 
-	public static final Text PROTOCOL_STATUS_CODE_KEY = new Text("nutch.protocol.code");
+  public static final String PROTO_STATUS_KEY = "_pst_";
 
-	public static final String PROTO_STATUS_KEY = "_pst_";
+  public static final Text WRITABLE_PROTO_STATUS_KEY = new Text(
+      PROTO_STATUS_KEY);
 
-	public static final Text WRITABLE_PROTO_STATUS_KEY = new Text(
-			PROTO_STATUS_KEY);
+  public static final String FETCH_TIME_KEY = "_ftk_";
 
-	public static final String FETCH_TIME_KEY = "_ftk_";
-
-	public static final String FETCH_STATUS_KEY = "_fst_";
+  public static final String FETCH_STATUS_KEY = "_fst_";
 
   /**
-   * Name to store the <a href="https://www.robotstxt.org/meta.html">robots
-   * metatag</a> in {@link org.apache.nutch.parse.ParseData}'s metadata.
+   * Sites may request that search engines don't provide access to cached
+   * documents.
    */
-  public static final String ROBOTS_METATAG = "robots";
+  public static final String CACHING_FORBIDDEN_KEY = "caching.forbidden";
 
-	/**
-	 * Sites may request that search engines don't provide access to cached
-	 * documents.
-	 */
-	public static final String CACHING_FORBIDDEN_KEY = "caching.forbidden";
+  public static final Utf8 CACHING_FORBIDDEN_KEY_UTF8 = new Utf8(
+      CACHING_FORBIDDEN_KEY);
 
-	/** Show both original forbidden content and summaries (default). */
-	public static final String CACHING_FORBIDDEN_NONE = "none";
+  /** Show both original forbidden content and summaries (default). */
+  public static final String CACHING_FORBIDDEN_NONE = "none";
 
-	/** Don't show either original forbidden content or summaries. */
-	public static final String CACHING_FORBIDDEN_ALL = "all";
+  /** Don't show either original forbidden content or summaries. */
+  public static final String CACHING_FORBIDDEN_ALL = "all";
 
-	/** Don't show original forbidden content, but show summaries. */
-	public static final String CACHING_FORBIDDEN_CONTENT = "content";
+  /** Don't show original forbidden content, but show summaries. */
+  public static final String CACHING_FORBIDDEN_CONTENT = "content";
 
-	public static final String REPR_URL_KEY = "_repr_";
+  public static final String REPR_URL_KEY = "_repr_";
 
-	public static final Text WRITABLE_REPR_URL_KEY = new Text(REPR_URL_KEY);
+  public static final Text WRITABLE_REPR_URL_KEY = new Text(REPR_URL_KEY);
 
-	/** Used by AdaptiveFetchSchedule to maintain custom fetch interval */
-	public static final String FIXED_INTERVAL_KEY = "fixedInterval";
+  public static final String ALL_BATCH_ID_STR = "-all";
 
-	public static final Text WRITABLE_FIXED_INTERVAL_KEY = new Text(
-			FIXED_INTERVAL_KEY);
+  public static final Utf8 ALL_CRAWL_ID = new Utf8(ALL_BATCH_ID_STR);
 
-	 /** For progress of job. Used by the Nutch REST service */
-	public static final String STAT_PROGRESS = "progress";
-	/**Used by Nutch REST service */
-	public static final String CRAWL_ID_KEY = "storage.crawl.id";
-	/** Argument key to specify location of the seed url dir for the REST endpoints **/
-	public static final String ARG_SEEDDIR = "url_dir";
-	/** Argument key to specify name of a seed list for the REST endpoints **/
-	public static final String ARG_SEEDNAME = "seedName";
-	/** Argument key to specify the location of crawldb for the REST endpoints **/
-	public static final String ARG_CRAWLDB = "crawldb";
-	/** Argument key to specify the location of linkdb for the REST endpoints **/
-	public static final String ARG_LINKDB = "linkdb";
-	/** Name of the key used in the Result Map sent back by the REST endpoint **/
-	public static final String VAL_RESULT = "result";
-	/** Argument key to specify the location of a directory of segments for the REST endpoints.
-	 * Similar to the -dir command in the bin/nutch script **/
-	public static final String ARG_SEGMENTDIR = "segment_dir";
-	/** Argument key to specify the location of individual segment or list of segments for the REST endpoints. The behavior differs for diffirent endpoints: CrawlDb, LinkDb and Indexing Jobs take list of segments, Fetcher and Parse segment take one segment **/
-	public static final String ARG_SEGMENTS = "segment";
-	/** Argument key to specify the location of hostdb for the REST endpoints **/
-	public static final String ARG_HOSTDB = "hostdb";
-	/** Title key in the Pub/Sub event metadata for the title of the parsed page*/
-	public static final String FETCH_EVENT_TITLE = "title";
-	/** Content-type key in the Pub/Sub event metadata for the content-type of the parsed page*/
-	public static final String FETCH_EVENT_CONTENTTYPE = "content-type";
-	/** Score key in the Pub/Sub event metadata for the score of the parsed page*/
-	public static final String FETCH_EVENT_SCORE = "score";
-	/** Fetch time key in the Pub/Sub event metadata for the fetch time of the parsed page*/
-	public static final String FETCH_EVENT_FETCHTIME = "fetchTime";
-	/** Content-lanueage key in the Pub/Sub event metadata for the content-language of the parsed page*/
-	public static final String FETCH_EVENT_CONTENTLANG = "content-language";
+  public static final String CRAWL_ID_KEY = "storage.crawl.id";
+
+  // short constants for cmd-line args
+  /** Batch id to select. */
+  public static final String ARG_BATCH = "batch";
+  /** Crawl id to use. */
+  public static final String ARG_CRAWL = "crawl";
+  /** Resume previously aborted op. */
+  public static final String ARG_RESUME = "resume";
+  /** Force processing even if there are locks or inconsistencies. */
+  public static final String ARG_FORCE = "force";
+  /** Sort statistics. */
+  public static final String ARG_SORT = "sort";
+  /** Solr URL. */
+  public static final String ARG_SOLR = "solr";
+  /** Number of fetcher threads (per map task). */
+  public static final String ARG_THREADS = "threads";
+  /** Number of fetcher tasks. */
+  public static final String ARG_NUMTASKS = "numTasks";
+  /** Generate topN scoring URLs. */
+  public static final String ARG_TOPN = "topN";
+  /** The notion of current time. */
+  public static final String ARG_CURTIME = "curTime";
+  /** Apply URLFilters. */
+  public static final String ARG_FILTER = "filter";
+  /** Apply URLNormalizers. */
+  public static final String ARG_NORMALIZE = "normalize";
+  /** Whitespace-separated list of seed URLs. */
+  public static final String ARG_SEEDLIST = "seed";
+  /** a path to a directory containing a list of seed URLs. */
+  public static final String ARG_SEEDDIR = "seedDir";
+  /** Class to run as a NutchTool. */
+  public static final String ARG_CLASS = "class";
+  /** Depth (number of cycles) of a crawl. */
+  public static final String ARG_DEPTH = "depth";
+  /** Sitemaps. */
+  public static final String ARG_SITEMAP = "sitemap";
+  /** Sitemap Detect as fetch . */
+  public static final String ARG_SITEMAP_DETECT = "stmDetect";
+
+  // short constants for status / results fields
+  /** Status / result message. */
+  public static final String STAT_MESSAGE = "msg";
+  /** Phase of processing. */
+  public static final String STAT_PHASE = "phase";
+  /** Progress (float). */
+  public static final String STAT_PROGRESS = "progress";
+  /** Jobs. */
+  public static final String STAT_JOBS = "jobs";
+  /** Counters. */
+  public static final String STAT_COUNTERS = "counters";
 }

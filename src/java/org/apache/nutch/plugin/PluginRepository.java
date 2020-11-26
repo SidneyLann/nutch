@@ -17,12 +17,10 @@
 package org.apache.nutch.plugin;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.WeakHashMap;
 import java.util.List;
@@ -32,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.util.NutchConfiguration;
-import org.apache.nutch.util.ObjectCache;
 
 /**
  * The plugin repositority is a registry of all plugins.
@@ -45,7 +42,7 @@ import org.apache.nutch.util.ObjectCache;
  * loading.
  */
 public class PluginRepository {
-  private static final WeakHashMap<String, PluginRepository> CACHE = new WeakHashMap<>();
+  private static final WeakHashMap<String, PluginRepository> CACHE = new WeakHashMap<String, PluginRepository>();
 
   private boolean auto;
 
@@ -55,7 +52,7 @@ public class PluginRepository {
 
   private HashMap<String, Plugin> fActivatedPlugins;
 
-  private static final Map<String, Map<PluginClassLoader, Class>> CLASS_CACHE = new HashMap<>();
+  private static final Map<String, Map<PluginClassLoader, Class>> CLASS_CACHE = new HashMap<String, Map<PluginClassLoader, Class>>();
 
   private Configuration conf;
 
@@ -63,12 +60,14 @@ public class PluginRepository {
       .getLogger(MethodHandles.lookup().lookupClass());
 
   /**
+   * Pluging repository constructor
+   *
+   * @param conf Configuration
    * @throws RuntimeException
-   * @see java.lang.Object#Object()
    */
   public PluginRepository(Configuration conf) throws RuntimeException {
-    fActivatedPlugins = new HashMap<>();
-    fExtensionPoints = new HashMap<>();
+    fActivatedPlugins = new HashMap<String, Plugin>();
+    fExtensionPoints = new HashMap<String, ExtensionPoint>();
     this.conf = new Configuration(conf);
     this.auto = conf.getBoolean("plugin.auto-activation", true);
     String[] pluginFolders = conf.getStrings("plugin.folders");
@@ -153,10 +152,10 @@ public class PluginRepository {
       CircularDependencyException {
 
     if (dependencies == null) {
-      dependencies = new HashMap<>();
+      dependencies = new HashMap<String, PluginDescriptor>();
     }
     if (branch == null) {
-      branch = new HashMap<>();
+      branch = new HashMap<String, PluginDescriptor>();
     }
     branch.put(plugin.getPluginId(), plugin);
 
@@ -182,8 +181,8 @@ public class PluginRepository {
   private Map<String, PluginDescriptor> getPluginCheckedDependencies(
       PluginDescriptor plugin, Map<String, PluginDescriptor> plugins)
       throws MissingDependencyException, CircularDependencyException {
-    Map<String, PluginDescriptor> dependencies = new HashMap<>();
-    Map<String, PluginDescriptor> branch = new HashMap<>();
+    Map<String, PluginDescriptor> dependencies = new HashMap<String, PluginDescriptor>();
+    Map<String, PluginDescriptor> branch = new HashMap<String, PluginDescriptor>();
     getPluginCheckedDependencies(plugin, plugins, dependencies, branch);
     return dependencies;
   }
@@ -200,7 +199,7 @@ public class PluginRepository {
     if (filtered == null) {
       return null;
     }
-    Map<String, PluginDescriptor> checked = new HashMap<>();
+    Map<String, PluginDescriptor> checked = new HashMap<String, PluginDescriptor>();
 
     for (PluginDescriptor plugin : filtered.values()) {
       try {
@@ -214,7 +213,7 @@ public class PluginRepository {
         LOG.warn(cde.getMessage());
       }
     }
-    return new ArrayList<>(checked.values());
+    return new ArrayList<PluginDescriptor>(checked.values());
   }
 
   /**
@@ -323,7 +322,7 @@ public class PluginRepository {
       throws ClassNotFoundException {
     Map<PluginClassLoader, Class> descMap = CLASS_CACHE.get(className);
     if (descMap == null) {
-      descMap = new HashMap<>();
+      descMap = new HashMap<PluginClassLoader, Class>();
       CLASS_CACHE.put(className, descMap);
     }
     PluginClassLoader loader = pDescriptor.getClassLoader();
@@ -371,7 +370,7 @@ public class PluginRepository {
   private Map<String, PluginDescriptor> filter(Pattern excludes,
       Pattern includes, Map<String, PluginDescriptor> plugins) {
 
-    Map<String, PluginDescriptor> map = new HashMap<>();
+    Map<String, PluginDescriptor> map = new HashMap<String, PluginDescriptor>();
 
     if (plugins == null) {
       return map;
@@ -398,81 +397,6 @@ public class PluginRepository {
       map.put(plugin.getPluginId(), plugin);
     }
     return map;
-  }
-
-  /**
-   * Get ordered list of plugins. Filter and normalization plugins are applied
-   * in a configurable "pipeline" order, e.g., if one plugin depends on the
-   * output of another plugin. This method loads the plugins in the order
-   * defined by orderProperty. If orderProperty is empty or unset, all active
-   * plugins of the given interface and extension point are loaded.
-   * 
-   * @param clazz
-   *          interface class implemented by required plugins
-   * @param xPointId
-   *          extension point id of required plugins
-   * @param orderProperty
-   *          property name defining plugin order
-   * @return array of plugin instances
-   */
-  public synchronized Object[] getOrderedPlugins(Class<?> clazz,
-      String xPointId, String orderProperty) {
-    Object[] filters;
-    ObjectCache objectCache = ObjectCache.get(conf);
-    filters = (Object[]) objectCache.getObject(clazz.getName());
-
-    if (filters == null) {
-      String order = conf.get(orderProperty);
-      List<String> orderOfFilters = new ArrayList<>();
-      boolean userDefinedOrder = false;
-      if (order != null && !order.trim().isEmpty()) {
-        orderOfFilters = Arrays.asList(order.trim().split("\\s+"));
-        userDefinedOrder = true;
-      }
-
-      try {
-        ExtensionPoint point = PluginRepository.get(conf).getExtensionPoint(
-            xPointId);
-        if (point == null)
-          throw new RuntimeException(xPointId + " not found.");
-        Extension[] extensions = point.getExtensions();
-        HashMap<String, Object> filterMap = new HashMap<>();
-        for (int i = 0; i < extensions.length; i++) {
-          Extension extension = extensions[i];
-          Object filter = extension.getExtensionInstance();
-          if (!filterMap.containsKey(filter.getClass().getName())) {
-            filterMap.put(filter.getClass().getName(), filter);
-            if (!userDefinedOrder)
-              orderOfFilters.add(filter.getClass().getName());
-          }
-        }
-        List<Object> sorted = new ArrayList<>();
-        for (String orderedFilter : orderOfFilters) {
-          Object f = filterMap.get(orderedFilter);
-          if (f == null) {
-            LOG.error(clazz.getSimpleName() + " : " + orderedFilter
-                + " declared in configuration property " + orderProperty
-                + " but not found in an active plugin - ignoring.");
-            continue;
-          }
-          sorted.add(f);
-        }
-        Object[] filter = (Object[]) Array.newInstance(clazz, sorted.size());
-        for (int i = 0; i < sorted.size(); i++) {
-          filter[i] = sorted.get(i);
-          if (LOG.isTraceEnabled()) {
-            LOG.trace(clazz.getSimpleName() + " : filters[" + i + "] = "
-                + filter[i].getClass());
-          }
-        }
-        objectCache.setObject(clazz.getName(), filter);
-      } catch (PluginRuntimeException e) {
-        throw new RuntimeException(e);
-      }
-
-      filters = (Object[]) objectCache.getObject(clazz.getName());
-    }
-    return filters;
   }
 
   /**

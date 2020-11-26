@@ -14,6 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Based on EasySSLProtocolSocketFactory from commons-httpclient:
+ * 
+ * $Header:
+ * /home/jerenkrantz/tmp/commons/commons-convert/cvs/home/cvs/jakarta-commons//httpclient/src/contrib/org/apache/commons/httpclient/contrib/ssl/DummySSLProtocolSocketFactory.java,v
+ * 1.7 2004/06/11 19:26:27 olegk Exp $ $Revision$ $Date: 2005-02-26 05:01:52
+ * -0800 (Sat, 26 Feb 2005) $
+ */
+
 package org.apache.nutch.protocol.httpclient;
 
 import java.lang.invoke.MethodHandles;
@@ -33,14 +42,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-/*
- * Based on EasySSLProtocolSocketFactory from commons-httpclient:
- *
- * $Header:
- * /home/jerenkrantz/tmp/commons/commons-convert/cvs/home/cvs/jakarta-commons//httpclient/src/contrib/org/apache/commons/httpclient/contrib/ssl/DummySSLProtocolSocketFactory.java,v
- * 1.7 2004/06/11 19:26:27 olegk Exp $ $Revision$ $Date: 2005-02-26 05:01:52
- * -0800 (Sat, 26 Feb 2005) $
- */
 public class DummySSLProtocolSocketFactory implements
     SecureProtocolSocketFactory {
 
@@ -97,7 +98,7 @@ public class DummySSLProtocolSocketFactory implements
    * create a new socket within the given limit of time. If socket constructor
    * does not return until the timeout expires, the controller terminates and
    * throws an {@link ConnectTimeoutException}
-   * </p>
+   *
    * 
    * @param host
    *          the host name/IP

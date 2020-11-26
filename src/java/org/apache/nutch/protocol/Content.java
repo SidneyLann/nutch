@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol;
 
+//JDK imports
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.zip.InflaterInputStream;
 
-import org.apache.commons.cli.Options;
+//Hadoop imports
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -36,6 +37,7 @@ import org.apache.hadoop.io.VersionMismatchException;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+//Nutch imports
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.util.MimeUtil;
 import org.apache.nutch.util.NutchConfiguration;
@@ -82,7 +84,6 @@ public final class Content implements Writable {
     this.metadata = metadata;
 
     this.mimeTypes = new MimeUtil(conf);
-
     this.contentType = getContentType(contentType, url, content);
   }
 
@@ -104,7 +105,6 @@ public final class Content implements Writable {
     this.metadata = metadata;
 
     this.mimeTypes = mimeTypes;
-
     this.contentType = getContentType(contentType, url, content);
   }
 
@@ -258,20 +258,6 @@ public final class Content implements Writable {
   }
 
   public String toString() {
-    return toString(StandardCharsets.UTF_8);
-  }
-
-  public String toString(String charset) {
-    Charset c = StandardCharsets.UTF_8;
-    try {
-      c = Charset.forName(charset);
-    } catch(Exception e) {
-      // fall-back to utf-8
-    };
-    return toString(c);
-  }
-
-  public String toString(Charset charset) {
     StringBuffer buffer = new StringBuffer();
 
     buffer.append("Version: " + version + "\n");
@@ -280,32 +266,32 @@ public final class Content implements Writable {
     buffer.append("contentType: " + contentType + "\n");
     buffer.append("metadata: " + metadata + "\n");
     buffer.append("Content:\n");
-    buffer.append(new String(content, charset));
+    buffer.append(new String(content, StandardCharsets.UTF_8)); // try default encoding
 
     return buffer.toString();
 
   }
 
-  public static void main(String argv[]) throws Exception {
+  public static void main(String args[]) throws Exception {
 
-    String usage = "Content (-local | -dfs <namenode:port>) recno segment";
+    String usage = "Content (-local | -dfs <namenode:port>) recno batchId";
 
-    if (argv.length < 3) {
+    if (args.length < 3) {
       System.out.println("usage:" + usage);
       return;
     }
-    Options opts = new Options();
-    Configuration conf = NutchConfiguration.create();
 
-    GenericOptionsParser parser = new GenericOptionsParser(conf, opts, argv);
+    GenericOptionsParser optParser = new GenericOptionsParser(
+        NutchConfiguration.create(), args);
+    String[] argv = optParser.getRemainingArgs();
+    Configuration conf = optParser.getConfiguration();
 
-    String[] remainingArgs = parser.getRemainingArgs();
+    FileSystem fs = FileSystem.get(conf);
+    try {
+      int recno = Integer.parseInt(argv[0]);
+      String batchId = argv[1];
 
-    try (FileSystem fs = FileSystem.get(conf)) {
-      int recno = Integer.parseInt(remainingArgs[0]);
-      String segment = remainingArgs[1];
-
-      Path file = new Path(segment, DIR_NAME);
+      Path file = new Path(batchId, DIR_NAME);
       System.out.println("Reading from file: " + file);
 
       ArrayFile.Reader contents = new ArrayFile.Reader(fs, file.toString(),
@@ -318,6 +304,8 @@ public final class Content implements Writable {
       System.out.println(content);
 
       contents.close();
+    } finally {
+      fs.close();
     }
   }
 

@@ -16,33 +16,18 @@
  */
 package org.apache.nutch.indexer;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.indexer.NutchDocument;
 import org.apache.nutch.plugin.Pluggable;
 
-import java.io.IOException;
-import java.util.Map;
-
-public interface IndexWriter extends Pluggable, Configurable {
-
-  /**
-   * The name of the extension point.
-   */
+public interface IndexWriter extends Configurable, Pluggable {
+  /** The name of the extension point. */
   final static String X_POINT_ID = IndexWriter.class.getName();
 
-  /**
-   * @deprecated use {@link #open(IndexWriterParams)}} instead.  
-   */
-  @Deprecated
-  public void open(Configuration conf, String name) throws IOException;
-
-  /**
-   * Initializes the internal variables from a given index writer configuration.
-   *
-   * @param parameters Params from the index writer configuration.
-   * @throws IOException Some exception thrown by writer.
-   */
-  void open(IndexWriterParams parameters) throws IOException;
+  public void open(Configuration job) throws IOException;
 
   public void write(NutchDocument doc) throws IOException;
 
@@ -55,9 +40,8 @@ public interface IndexWriter extends Pluggable, Configurable {
   public void close() throws IOException;
 
   /**
-   * Returns {@link Map} with the specific parameters the IndexWriter instance can take.
-   *
-   * @return The values of each row. It must have the form <KEY,<DESCRIPTION,VALUE>>.
+   * Returns a String describing the IndexWriter instance and the specific
+   * parameters it can take
    */
-  Map<String, Map.Entry<String, Object>> describe();
+  public String describe();
 }

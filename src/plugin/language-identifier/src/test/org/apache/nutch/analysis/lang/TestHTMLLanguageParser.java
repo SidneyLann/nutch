@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,31 +16,38 @@
  */
 package org.apache.nutch.analysis.lang;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+// JUnit imports
 
-// Nutch imports
+import org.apache.avro.util.Utf8;
 import org.apache.nutch.metadata.Metadata;
-import org.apache.nutch.parse.Parse;
 import org.apache.nutch.parse.ParseUtil;
-import org.apache.nutch.protocol.Content;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.Bytes;
+import org.apache.nutch.util.EncodingDetector;
 import org.apache.nutch.util.NutchConfiguration;
 import org.apache.tika.language.LanguageIdentifier;
-import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TestHTMLLanguageParser {
 
-  private static String URL = "http://foo.bar/";
+  private static Utf8 URL = new Utf8("http://foo.bar/");
 
-  private static String BASE = "http://foo.bar/";
+  private static Utf8 BASE = new Utf8("http://foo.bar/");
 
   String docs[] = {
       "<html lang=\"fi\"><head>document 1 title</head><body>jotain suomeksi</body></html>",
       "<html><head><meta http-equiv=\"content-language\" content=\"en\"><title>document 2 title</head><body>this is english</body></html>",
       "<html><head><meta name=\"dc.language\" content=\"en\"><title>document 3 title</head><body>this is english</body></html>" };
 
-  // Tika does not return "fi" but null
+  // known issue with attributed not being passed by Tika
   String metalanguages[] = { "fi", "en", "en" };
 
   /**
@@ -53,14 +60,15 @@ public class TestHTMLLanguageParser {
       ParseUtil parser = new ParseUtil(NutchConfiguration.create());
       /* loop through the test documents and validate result */
       for (int t = 0; t < docs.length; t++) {
-        Content content = getContent(docs[t]);
-        Parse parse = parser.parse(content).get(content.getUrl());
-        Assert.assertEquals(metalanguages[t], (String) parse.getData()
-            .getParseMeta().get(Metadata.LANGUAGE));
+        WebPage page = getPage(docs[t]);
+        parser.parse(URL.toString(), page);
+        ByteBuffer blang = page.getMetadata().get(new Utf8(Metadata.LANGUAGE));
+        String lang = Bytes.toString(blang);
+        assertEquals(metalanguages[t], lang);
       }
     } catch (Exception e) {
       e.printStackTrace(System.out);
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
 
   }
@@ -89,16 +97,9 @@ public class TestHTMLLanguageParser {
         { "torp, stuga, uthyres, bed & breakfast", null } };
 
     for (int i = 0; i < 44; i++) {
-      Assert.assertEquals(tests[i][1],
+      assertEquals(tests[i][1],
           HTMLLanguageParser.LanguageParser.parseLanguage(tests[i][0]));
     }
-  }
-
-  private Content getContent(String text) {
-    Metadata meta = new Metadata();
-    meta.add("Content-Type", "text/html");
-    return new Content(URL, BASE, text.getBytes(), "text/html", meta,
-        NutchConfiguration.create());
   }
 
   @Test
@@ -107,7 +108,7 @@ public class TestHTMLLanguageParser {
       long total = 0;
       LanguageIdentifier identifier;
       BufferedReader in = new BufferedReader(new InputStreamReader(this
-          .getClass().getResourceAsStream("test-referencial.txt")));
+          .getClass().getResourceAsStream("test-referencial.txt"), StandardCharsets.UTF_8));
       String line = null;
       while ((line = in.readLine()) != null) {
         String[] tokens = line.split(";");
@@ -123,7 +124,7 @@ public class TestHTMLLanguageParser {
             if (testLine.length() > 256) {
               identifier = new LanguageIdentifier(testLine);
               lang = identifier.getLanguage();
-              Assert.assertEquals(tokens[1], lang);
+              assertEquals(tokens[1], lang);
             }
           }
           testFile.close();
@@ -135,15 +136,24 @@ public class TestHTMLLanguageParser {
           lang = identifier.getLanguage();
           System.out.println(lang);
           total += System.currentTimeMillis() - start;
-          Assert.assertEquals(tokens[1], lang);
+          assertEquals(tokens[1], lang);
         }
       }
       in.close();
       System.out.println("Total Time=" + total);
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.fail(e.toString());
+      fail(e.toString());
     }
   }
 
+  private WebPage getPage(String text) {
+    WebPage page = WebPage.newBuilder().build();
+    page.setBaseUrl(BASE);
+    page.setContent(ByteBuffer.wrap(text.getBytes(StandardCharsets.UTF_8)));
+    page.setContentType(new Utf8("text/html"));
+    page.getHeaders().put(EncodingDetector.CONTENT_TYPE_UTF8,
+        new Utf8("text/html"));
+    return page;
+  }
 }

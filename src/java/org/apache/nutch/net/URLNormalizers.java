@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.net;
 
 import java.lang.invoke.MethodHandles;
@@ -30,7 +31,6 @@ import java.util.Vector;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.plugin.Extension;
 import org.apache.nutch.plugin.ExtensionPoint;
@@ -52,30 +52,30 @@ import org.apache.nutch.util.ObjectCache;
  * order). If there are more normalizers activated than explicitly named on this
  * list, the remaining ones will be run in random order after the ones specified
  * on the list are executed.
- * </p>
+ *
  * <p>
  * You can define a set of contexts (or scopes) in which normalizers may be
  * called. Each scope can have its own list of normalizers (defined in
  * "urlnormalizer.scope.&lt;scope_name&gt;" property) and its own order (defined in
  * "urlnormalizer.order.&lt;scope_name&gt;" property). If any of these properties are
  * missing, default settings are used for the global scope.
- * </p>
+ *
  * <p>
  * In case no normalizers are required for any given scope, a
  * <code>org.apache.nutch.net.urlnormalizer.pass.PassURLNormalizer</code> should
  * be used.
- * </p>
+ *
  * <p>
  * Each normalizer may further select among many configurations, depending on
  * the scope in which it is called, because the scope name is passed as a
  * parameter to each normalizer. You can also use the same normalizer for many
  * scopes.
- * </p>
+ *
  * <p>
  * Several scopes have been defined, and various Nutch tools will attempt using
  * scope-specific normalizers first (and fall back to default config if
  * scope-specific configuration is missing).
- * </p>
+ *
  * <p>
  * Normalizers may be run several times, to ensure that modifications introduced
  * by normalizers at the end of the list can be further reduced by normalizers
@@ -84,7 +84,7 @@ import org.apache.nutch.util.ObjectCache;
  * want to run this loop up to the number of activated normalizers. This loop
  * count can be configured through <tt>urlnormalizer.loop.count</tt> property.
  * As soon as the url is unchanged the loop will stop and return the result.
- * </p>
+ *
  * 
  * @author Andrzej Bialecki
  */
@@ -97,10 +97,10 @@ public final class URLNormalizers {
   public static final String SCOPE_DEFAULT = "default";
   /** Scope used by {@link org.apache.nutch.crawl.URLPartitioner}. */
   public static final String SCOPE_PARTITION = "partition";
-  /** Scope used by {@link org.apache.nutch.crawl.Generator}. */
+  /** Scope used by {@link org.apache.nutch.crawl.GeneratorJob}. */
   public static final String SCOPE_GENERATE_HOST_COUNT = "generate_host_count";
   /**
-   * Scope used by {@link org.apache.nutch.fetcher.Fetcher} when processing
+   * Scope used by {@link org.apache.nutch.fetcher.FetcherJob} when processing
    * redirect URLs.
    */
   public static final String SCOPE_FETCHER = "fetcher";
@@ -108,22 +108,19 @@ public final class URLNormalizers {
   public static final String SCOPE_CRAWLDB = "crawldb";
   /** Scope used when updating the LinkDb with new URLs. */
   public static final String SCOPE_LINKDB = "linkdb";
-  /** Scope used by {@link org.apache.nutch.crawl.Injector}. */
+  /** Scope used by {@link org.apache.nutch.crawl.InjectorJob}. */
   public static final String SCOPE_INJECT = "inject";
   /**
    * Scope used when constructing new {@link org.apache.nutch.parse.Outlink}
    * instances.
    */
   public static final String SCOPE_OUTLINK = "outlink";
-  /** Scope used when indexing URLs. */
-  public static final String SCOPE_INDEXER = "indexer";
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
   /* Empty extension list for caching purposes. */
-  private final List<Extension> EMPTY_EXTENSION_LIST = Collections
-      .<Extension> emptyList();
+  private final List<Extension> EMPTY_EXTENSION_LIST = Collections.emptyList();
 
   private final URLNormalizer[] EMPTY_NORMALIZERS = new URLNormalizer[0];
 
@@ -181,7 +178,7 @@ public final class URLNormalizers {
       return EMPTY_NORMALIZERS;
     }
 
-    List<URLNormalizer> normalizers = new Vector<>(
+    List<URLNormalizer> normalizers = new Vector<URLNormalizer>(
         extensions.size());
 
     Iterator<Extension> it = extensions.iterator();
@@ -262,23 +259,23 @@ public final class URLNormalizers {
     if (orderlist == null)
       orderlist = conf.get("urlnormalizer.order");
     if (orderlist != null && !orderlist.trim().equals("")) {
-      orders = orderlist.trim().split("\\s+");
+      orders = orderlist.split("\\s+");
     }
     String scopelist = conf.get("urlnormalizer.scope." + scope);
     Set<String> impls = null;
     if (scopelist != null && !scopelist.trim().equals("")) {
       String[] names = scopelist.split("\\s+");
-      impls = new HashSet<>(Arrays.asList(names));
+      impls = new HashSet<String>(Arrays.asList(names));
     }
     Extension[] extensions = this.extensionPoint.getExtensions();
-    HashMap<String, Extension> normalizerExtensions = new HashMap<>();
+    HashMap<String, Extension> normalizerExtensions = new HashMap<String, Extension>();
     for (int i = 0; i < extensions.length; i++) {
       Extension extension = extensions[i];
       if (impls != null && !impls.contains(extension.getClazz()))
         continue;
       normalizerExtensions.put(extension.getClazz(), extension);
     }
-    List<Extension> res = new ArrayList<>();
+    List<Extension> res = new ArrayList<Extension>();
     if (orders == null) {
       res.addAll(normalizerExtensions.values());
     } else {

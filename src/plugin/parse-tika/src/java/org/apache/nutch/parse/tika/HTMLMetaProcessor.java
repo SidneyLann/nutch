@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,17 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.parse.tika;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
-import org.apache.nutch.metadata.Nutch;
 import org.apache.nutch.parse.HTMLMetaTags;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 
 /**
  * Class for parsing META Directives from DOM trees. This class handles
@@ -82,62 +79,39 @@ public class HTMLMetaProcessor {
           if (contentNode != null) {
             String name = nameNode.getNodeValue().toLowerCase(Locale.ROOT);
             metaTags.getGeneralTags().add(name, contentNode.getNodeValue());
-            if (Nutch.ROBOTS_METATAG.equals(name)) {
-              String directives = contentNode.getNodeValue()
-                  .toLowerCase(Locale.ROOT);
-              int index = directives.indexOf("none");
+            if ("robots".equals(name)) {
 
-              if (index >= 0) {
-                metaTags.setNoIndex();
-                metaTags.setNoFollow();
-              }
+              if (contentNode != null) {
+                String directives = contentNode.getNodeValue().toLowerCase(Locale.ROOT);
+                int index = directives.indexOf("none");
 
-              index = directives.indexOf("all");
-              if (index >= 0) {
-                // do nothing...
-              }
+                if (index >= 0) {
+                  metaTags.setNoIndex();
+                  metaTags.setNoFollow();
+                }
 
-              index = directives.indexOf("noindex");
-              if (index >= 0) {
-                metaTags.setNoIndex();
-              }
+                index = directives.indexOf("all");
+                if (index >= 0) {
+                  // do nothing...
+                }
 
-              index = directives.indexOf("nofollow");
-              if (index >= 0) {
-                metaTags.setNoFollow();
-              }
+                index = directives.indexOf("noindex");
+                if (index >= 0) {
+                  metaTags.setNoIndex();
+                }
 
-              index = directives.indexOf("noarchive");
-              if (index >= 0) {
-                metaTags.setNoCache();
+                index = directives.indexOf("nofollow");
+                if (index >= 0) {
+                  metaTags.setNoFollow();
+                }
+
+                index = directives.indexOf("noarchive");
+                if (index >= 0) {
+                  metaTags.setNoCache();
+                }
               }
 
             } // end if (name == robots)
-            // meta names added/transformed by Tika
-            else if (name.equals("pragma")) {
-              String content = contentNode.getNodeValue()
-                  .toLowerCase(Locale.ROOT);
-              if (content.contains("no-cache")) {
-                metaTags.setNoCache();
-              }
-            } else if (name.equals("refresh")) {
-              String content = contentNode.getNodeValue()
-                  .toLowerCase(Locale.ROOT);
-              setRefresh(metaTags, content, currURL);
-            } else if (name.equals("content-location")) {
-              String urlString = contentNode.getNodeValue();
-              URL url = null;
-              try {
-                if (currURL == null) {
-                  url = new URL(urlString);
-                } else {
-                  url = new URL(currURL, urlString);
-                }
-                metaTags.setBaseHref(url);
-              } catch (MalformedURLException e) {
-                // ignore, base-href not set
-              }
-            }
           }
         }
 
@@ -152,7 +126,54 @@ public class HTMLMetaProcessor {
               if (index >= 0)
                 metaTags.setNoCache();
             } else if ("refresh".equals(name)) {
-              setRefresh(metaTags, content, currURL);
+              int idx = content.indexOf(';');
+              String time = null;
+              if (idx == -1) { // just the refresh time
+                time = content;
+              } else
+                time = content.substring(0, idx);
+              try {
+                metaTags.setRefreshTime(Integer.parseInt(time));
+                // skip this if we couldn't parse the time
+                metaTags.setRefresh(true);
+              } catch (Exception e) {
+                ;
+              }
+              URL refreshUrl = null;
+              if (metaTags.getRefresh() && idx != -1) { // set the URL
+                idx = content.toLowerCase(Locale.ROOT).indexOf("url=");
+                if (idx == -1) { // assume a mis-formatted entry with just the
+                                 // url
+                  idx = content.indexOf(';') + 1;
+                } else
+                  idx += 4;
+                if (idx != -1) {
+                  String url = content.substring(idx);
+                  try {
+                    refreshUrl = new URL(url);
+                  } catch (Exception e) {
+                    // XXX according to the spec, this has to be an absolute
+                    // XXX url. However, many websites use relative URLs and
+                    // XXX expect browsers to handle that.
+                    // XXX Unfortunately, in some cases this may create a
+                    // XXX infinitely recursive paths (a crawler trap)...
+                    // if (!url.startsWith("/")) url = "/" + url;
+                    try {
+                      refreshUrl = new URL(currURL, url);
+                    } catch (Exception e1) {
+                      refreshUrl = null;
+                    }
+                  }
+                }
+              }
+              if (metaTags.getRefresh()) {
+                if (refreshUrl == null) {
+                  // apparently only refresh time was present. set the URL
+                  // to the same URL.
+                  refreshUrl = currURL;
+                }
+                metaTags.setRefreshHref(refreshUrl);
+              }
             }
           }
         }
@@ -188,58 +209,6 @@ public class HTMLMetaProcessor {
       for (int i = 0; i < len; i++) {
         getMetaTagsHelper(metaTags, children.item(i), currURL);
       }
-    }
-  }
-
-  private static void setRefresh(HTMLMetaTags metaTags, String content,
-      URL currURL) {
-    int idx = content.indexOf(';');
-    String time = null;
-    if (idx == -1) { // just the refresh time
-      time = content;
-    } else
-      time = content.substring(0, idx);
-    try {
-      metaTags.setRefreshTime(Integer.parseInt(time));
-      // skip this if we couldn't parse the time
-      metaTags.setRefresh(true);
-    } catch (Exception e) {
-      ;
-    }
-    URL refreshUrl = null;
-    if (metaTags.getRefresh() && idx != -1) { // set the URL
-      idx = content.toLowerCase(Locale.ROOT).indexOf("url=");
-      if (idx == -1) { // assume a mis-formatted entry with just the
-                       // url
-        idx = content.indexOf(';') + 1;
-      } else
-        idx += 4;
-      if (idx != -1) {
-        String url = content.substring(idx);
-        try {
-          refreshUrl = new URL(url);
-        } catch (Exception e) {
-          // XXX according to the spec, this has to be an absolute
-          // XXX url. However, many websites use relative URLs and
-          // XXX expect browsers to handle that.
-          // XXX Unfortunately, in some cases this may create a
-          // XXX infinitely recursive paths (a crawler trap)...
-          // if (!url.startsWith("/")) url = "/" + url;
-          try {
-            refreshUrl = new URL(currURL, url);
-          } catch (Exception e1) {
-            refreshUrl = null;
-          }
-        }
-      }
-    }
-    if (metaTags.getRefresh()) {
-      if (refreshUrl == null) {
-        // apparently only refresh time was present. set the URL
-        // to the same URL.
-        refreshUrl = currURL;
-      }
-      metaTags.setRefreshHref(refreshUrl);
     }
   }
 

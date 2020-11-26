@@ -1,65 +1,51 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.nutch.indexwriter.solr;
 
+import java.lang.invoke.MethodHandles;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.http.client.params.HttpClientParams;
+import org.apache.http.params.HttpParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
 
-import java.util.List;
+import java.net.MalformedURLException;
 
 public class SolrUtils {
 
-  static CloudSolrClient getCloudSolrClient(List<String> urls) {
-    CloudSolrClient sc = new CloudSolrClient.Builder(urls)
-        .withParallelUpdates(true).build();
-    sc.connect();
-    return sc;
+  private static final Logger LOG = LoggerFactory
+      .getLogger(MethodHandles.lookup().lookupClass());
+
+  public static HttpSolrServer getHttpSolrServer(Configuration job)
+      throws MalformedURLException {
+    DefaultHttpClient client = new DefaultHttpClient();
+
+    // Check for username/password
+    if (job.getBoolean(SolrConstants.USE_AUTH, false)) {
+      String username = job.get(SolrConstants.USERNAME);
+
+      LOG.info("Authenticating as: " + username);
+
+      AuthScope scope = new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT,
+          AuthScope.ANY_REALM, AuthScope.ANY_SCHEME);
+
+      client.getCredentialsProvider().setCredentials(
+          scope,
+          new UsernamePasswordCredentials(username, job
+              .get(SolrConstants.PASSWORD)));
+
+      HttpParams params = client.getParams();
+      HttpClientParams.setAuthenticating(params, true);
+
+      client.setParams(params);
+    }
+
+    return new HttpSolrServer(job.get(SolrConstants.SERVER_URL), client);
   }
 
-  static CloudSolrClient getCloudSolrClient(List<String> urls, String username,
-      String password) {
-    // Building http client
-    CredentialsProvider provider = new BasicCredentialsProvider();
-    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
-        username, password);
-    provider.setCredentials(AuthScope.ANY, credentials);
-
-    HttpClient client = HttpClientBuilder.create()
-        .setDefaultCredentialsProvider(provider).build();
-
-    // Building the client
-    CloudSolrClient sc = new CloudSolrClient.Builder(urls)
-        .withParallelUpdates(true).withHttpClient(client).build();
-    sc.connect();
-    return sc;
-  }
-
-  static SolrClient getHttpSolrClient(String url) {
-    return new HttpSolrClient.Builder(url).build();
-  }
-
-  static String stripNonCharCodepoints(String input) {
+  public static String stripNonCharCodepoints(String input) {
     StringBuilder retval = new StringBuilder();
     char ch;
 

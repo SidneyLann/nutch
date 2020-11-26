@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,6 +16,7 @@
  */
 package org.apache.nutch.parse;
 
+// JDK imports
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +31,7 @@ import java.util.Map;
  * @author mattmann
  * @version 1.0
  */
-class ParsePluginList {
+public class ParsePluginList {
 
   /* a map to link mimeType to an ordered list of parsing plugins */
   private Map<String, List<String>> fMimeTypeToPluginMap = null;
@@ -42,11 +43,11 @@ class ParsePluginList {
    * Constructs a new ParsePluginList
    */
   ParsePluginList() {
-    fMimeTypeToPluginMap = new HashMap<>();
-    aliases = new HashMap<>();
+    fMimeTypeToPluginMap = new HashMap<String, List<String>>();
+    aliases = new HashMap<String, String>();
   }
 
-  List<String> getPluginList(String mimeType) {
+  public List<String> getPluginList(String mimeType) {
     return fMimeTypeToPluginMap.get(mimeType);
   }
 
@@ -54,7 +55,7 @@ class ParsePluginList {
     this.aliases = aliases;
   }
 
-  Map<String, String> getAliases() {
+  public Map<String, String> getAliases() {
     return aliases;
   }
 

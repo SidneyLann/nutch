@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<?xml-stylesheet type="text/xsl" href="nutch-conf.xsl"?>
 
 <!-- Creative Commons' Nutch configuration -->
 
-<configuration>
+<nutch-conf>
 
 <property>
   <name>http.agent.name</name>
@@ -26,6 +26,13 @@
 </property>
 
 <property>
+  <name>http.max.delays</name>
+  <value>3</value>
+  <description>The CC crawl visits a large number of different
+  hosts, so we should not need to delay much.</description>
+</property>
+
+<property>
   <name>creativecommons.exclude.unlicensed</name>
   <value>true</value>
   <description>Exclude HTML content which does not contain a CC license.
@@ -40,4 +47,4 @@
   </description>
 </property>
 
-</configuration>
+</nutch-conf>

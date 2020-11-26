@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,22 +16,22 @@
  */
 package org.apache.nutch.parse;
 
+// JDK imports
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Vector;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hadoop.conf.Configuration;
-
 import org.apache.nutch.plugin.Extension;
 import org.apache.nutch.plugin.ExtensionPoint;
-import org.apache.nutch.plugin.PluginRuntimeException;
 import org.apache.nutch.plugin.PluginRepository;
+import org.apache.nutch.plugin.PluginRuntimeException;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.MimeUtil;
 import org.apache.nutch.util.ObjectCache;
 
@@ -45,11 +45,10 @@ public final class ParserFactory {
   public static final String DEFAULT_PLUGIN = "*";
 
   /** Empty extension list for caching purposes. */
-  private final List<Extension> EMPTY_EXTENSION_LIST = Collections
-      .<Extension> emptyList();
+  private final List<Extension> EMPTY_EXTENSION_LIST = new ArrayList<Extension>();
 
-  private Configuration conf;
-  private ExtensionPoint extensionPoint;
+  private final Configuration conf;
+  private final ExtensionPoint extensionPoint;
   private ParsePluginList parsePluginList;
 
   public ParserFactory(Configuration conf) {
@@ -59,7 +58,6 @@ public final class ParserFactory {
         Parser.X_POINT_ID);
     this.parsePluginList = (ParsePluginList) objectCache
         .getObject(ParsePluginList.class.getName());
-
     if (this.parsePluginList == null) {
       this.parsePluginList = new ParsePluginsReader().parse(conf);
       objectCache.setObject(ParsePluginList.class.getName(),
@@ -122,9 +120,8 @@ public final class ParserFactory {
       throw new ParserNotFound(url, contentType);
     }
 
-    parsers = new Vector<>(parserExts.size());
-    for (Iterator<Extension> i = parserExts.iterator(); i.hasNext();) {
-      Extension ext = i.next();
+    parsers = new ArrayList<Parser>(parserExts.size());
+    for (Extension ext : parserExts) {
       Parser p = null;
       try {
         // check to see if we've cached this parser instance yet
@@ -137,13 +134,10 @@ public final class ParserFactory {
         parsers.add(p);
       } catch (PluginRuntimeException e) {
         if (LOG.isWarnEnabled()) {
-          LOG.warn(
-              "ParserFactory:PluginRuntimeException when "
-                  + "initializing parser plugin "
-                  + ext.getDescriptor().getPluginId()
-                  + " instance because: " + e.getMessage()
-                  + " - attempting to continue instantiating parsers",
-              e);
+          LOG.warn("ParserFactory:PluginRuntimeException when "
+              + "initializing parser plugin "
+              + ext.getDescriptor().getPluginId() + " instance in getParsers "
+              + "function: attempting to continue instantiating parsers: ", e);
         }
       }
     }
@@ -209,6 +203,23 @@ public final class ParserFactory {
         throw new ParserNotFound("Cannot init parser for id [" + id + "]");
       }
     }
+  }
+
+  public Collection<WebPage.Field> getFields() {
+    Set<WebPage.Field> columns = new HashSet<WebPage.Field>();
+    Extension[] extensions = this.extensionPoint.getExtensions();
+    for (Extension ext : extensions) {
+      try {
+        Parser parser = (Parser) ext.getExtensionInstance();
+        Collection<WebPage.Field> pluginFields = parser.getFields();
+        if (pluginFields != null) {
+          columns.addAll(pluginFields);
+        }
+      } catch (PluginRuntimeException e) {
+        LOG.error("PluginRuntimeException", e);
+      }
+    }
+    return columns;
   }
 
   /**
@@ -298,7 +309,7 @@ public final class ParserFactory {
   private List<Extension> matchExtensions(List<String> plugins,
       Extension[] extensions, String contentType) {
 
-    List<Extension> extList = new ArrayList<>();
+    List<Extension> extList = new ArrayList<Extension>();
     if (plugins != null) {
 
       for (String parsePluginId : plugins) {
@@ -397,11 +408,10 @@ public final class ParserFactory {
   }
 
   private boolean match(Extension extension, String id, String type) {
-    return ((id.equals(extension.getId())) && (extension.getAttribute(
-        "contentType").equals("*")
-        || type
-            .matches(escapeContentType(extension.getAttribute("contentType"))) || type
-          .equals(DEFAULT_PLUGIN)));
+    return (id.equals(extension.getId()))
+        && (extension.getAttribute("contentType").equals("*")
+            || type.matches(escapeContentType(extension
+                .getAttribute("contentType"))) || type.equals(DEFAULT_PLUGIN));
   }
 
   /** Get an extension from its id and supported content-type. */
@@ -426,4 +436,5 @@ public final class ParserFactory {
   private Extension getExtensionFromAlias(Extension[] list, String id) {
     return getExtension(list, parsePluginList.getAliases().get(id));
   }
+
 }

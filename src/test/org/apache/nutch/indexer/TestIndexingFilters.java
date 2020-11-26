@@ -16,18 +16,15 @@
  */
 package org.apache.nutch.indexer;
 
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.Inlinks;
 import org.apache.nutch.metadata.Metadata;
-import org.apache.nutch.parse.Outlink;
-import org.apache.nutch.parse.ParseData;
-import org.apache.nutch.parse.ParseImpl;
-import org.apache.nutch.parse.ParseStatus;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestIndexingFilters {
 
@@ -47,13 +44,16 @@ public class TestIndexingFilters {
     conf.set(IndexingFilters.INDEXINGFILTER_ORDER, class1 + " " + class2);
 
     IndexingFilters filters = new IndexingFilters(conf);
-    filters.filter(new NutchDocument(), new ParseImpl("text", new ParseData(
-        new ParseStatus(), "title", new Outlink[0], new Metadata())), new Text(
-        "http://www.example.com/"), new CrawlDatum(), new Inlinks());
+    WebPage page = WebPage.newBuilder().build();
+    page.setText(new Utf8("text"));
+    page.setTitle(new Utf8("title"));
+    filters.filter(new NutchDocument(), "http://www.example.com/", page);
   }
 
   /**
    * Test behaviour when NutchDOcument is null
+   * 
+   * @throws IndexingException
    */
   @Test
   public void testNutchDocumentNullIndexingFilter() throws IndexingException {
@@ -62,12 +62,12 @@ public class TestIndexingFilters {
     conf.addResource("crawl-tests.xml");
 
     IndexingFilters filters = new IndexingFilters(conf);
-    NutchDocument doc = filters.filter(null, new ParseImpl("text",
-        new ParseData(new ParseStatus(), "title", new Outlink[0],
-            new Metadata())), new Text("http://www.example.com/"),
-        new CrawlDatum(), new Inlinks());
+    WebPage page = WebPage.newBuilder().build();
+    page.setText(new Utf8("text"));
+    page.setTitle(new Utf8("title"));
+    NutchDocument doc = filters.filter(null, "http://www.example.com/", page);
 
-    Assert.assertNull(doc);
+    assertNull(doc);
   }
 
   /**
@@ -85,26 +85,23 @@ public class TestIndexingFilters {
     conf.set(IndexingFilters.INDEXINGFILTER_ORDER, class1);
 
     IndexingFilters filters1 = new IndexingFilters(conf);
-    NutchDocument fdoc1 = filters1.filter(new NutchDocument(), new ParseImpl(
-        "text", new ParseData(new ParseStatus(), "title", new Outlink[0],
-            new Metadata())), new Text("http://www.example.com/"),
-        new CrawlDatum(), new Inlinks());
+    WebPage page = WebPage.newBuilder().build();
+    page.setText(new Utf8("text"));
+    page.setTitle(new Utf8("title"));
+    NutchDocument fdoc1 = filters1.filter(new NutchDocument(),
+        "http://www.example.com/", page);
 
     // add another index filter
     String class2 = "org.apache.nutch.indexer.metadata.MetadataIndexer";
     // set content metadata
     Metadata md = new Metadata();
     md.add("example", "data");
-    // set content metadata property defined in MetadataIndexer
-    conf.set("index.content.md", "example");
     // add MetadataIndxer filter
     conf.set(IndexingFilters.INDEXINGFILTER_ORDER, class1 + " " + class2);
     IndexingFilters filters2 = new IndexingFilters(conf);
-    NutchDocument fdoc2 = filters2.filter(new NutchDocument(), new ParseImpl(
-        "text", new ParseData(new ParseStatus(), "title", new Outlink[0], md)),
-        new Text("http://www.example.com/"), new CrawlDatum(), new Inlinks());
-    Assert.assertEquals(fdoc1.getFieldNames().size(), fdoc2.getFieldNames()
-        .size());
+    NutchDocument fdoc2 = filters2.filter(new NutchDocument(),
+        "http://www.example.com/", page);
+    assertEquals(fdoc1.getFieldNames().size(), fdoc2.getFieldNames().size());
   }
 
 }

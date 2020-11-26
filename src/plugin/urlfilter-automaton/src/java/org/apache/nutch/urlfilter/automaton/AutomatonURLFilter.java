@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,25 +16,29 @@
  */
 package org.apache.nutch.urlfilter.automaton;
 
+// JDK imports
 import java.io.Reader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.regex.PatternSyntaxException;
 
+// Hadoop imports
 import org.apache.hadoop.conf.Configuration;
 
+// Automaton imports
 import dk.brics.automaton.RegExp;
 import dk.brics.automaton.RunAutomaton;
+import org.apache.nutch.net.*;
 import org.apache.nutch.urlfilter.api.RegexRule;
 import org.apache.nutch.urlfilter.api.RegexURLFilterBase;
 
 /**
  * RegexURLFilterBase implementation based on the <a
- * href="https://www.brics.dk/automaton/">dk.brics.automaton</a> Finite-State
+ * href="http://www.brics.dk/automaton/">dk.brics.automaton</a> Finite-State
  * Automata for Java<sup>TM</sup>.
  * 
  * @author J&eacute;r&ocirc;me Charron
- * @see <a href="https://www.brics.dk/automaton/">dk.brics.automaton</a>
+ * @see <a href="http://www.brics.dk/automaton/">dk.brics.automaton</a>
  */
 public class AutomatonURLFilter extends RegexURLFilterBase {
   public static final String URLFILTER_AUTOMATON_FILE = "urlfilter.automaton.file";
@@ -76,10 +80,6 @@ public class AutomatonURLFilter extends RegexURLFilterBase {
   protected RegexRule createRule(boolean sign, String regex) {
     return new Rule(sign, regex);
   }
-  
-  protected RegexRule createRule(boolean sign, String regex, String hostOrDomain) {
-    return new Rule(sign, regex, hostOrDomain);
-  }
 
   /*
    * ------------------------------------ * </implementation:RegexURLFilterBase>
@@ -96,11 +96,6 @@ public class AutomatonURLFilter extends RegexURLFilterBase {
 
     Rule(boolean sign, String regex) {
       super(sign, regex);
-      automaton = new RunAutomaton(new RegExp(regex, RegExp.ALL).toAutomaton());
-    }
-    
-    Rule(boolean sign, String regex, String hostOrDomain) {
-      super(sign, regex, hostOrDomain);
       automaton = new RunAutomaton(new RegExp(regex, RegExp.ALL).toAutomaton());
     }
 

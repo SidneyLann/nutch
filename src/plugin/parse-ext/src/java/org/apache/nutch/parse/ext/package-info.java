@@ -19,4 +19,3 @@
  * Parse wrapper to run external command to do the parsing.
  */
 package org.apache.nutch.parse.ext;
-

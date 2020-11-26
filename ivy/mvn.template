@@ -33,7 +33,6 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-
   <scm>
     <developerConnection>scm:git:https://github.com/apache/nutch.git</developerConnection>
     <connection>scm:git:https://github.com/apache/nutch.git</connection>
@@ -68,7 +67,7 @@
       <id>markus</id>
       <name>Markus Jelsma</name>
       <email>markus@apache.org</email>
-    </developer>	
+    </developer>
     <developer>
       <id>fenglu</id>
       <name>Feng Lu</name>
@@ -86,7 +85,7 @@
     </developer>
     <developer>
       <id>tejasp</id>
-      <name>Tejas Patil</name> 
+      <name>Tejas Patil</name>
       <email>tejasp@apache.org</email>
     </developer>
     <developer>

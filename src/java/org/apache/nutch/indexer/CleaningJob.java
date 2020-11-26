@@ -18,37 +18,42 @@ package org.apache.nutch.indexer;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.text.SimpleDateFormat;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ByteWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
-import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.crawl.CrawlDb;
-import org.apache.nutch.util.NutchConfiguration;
-import org.apache.nutch.util.NutchJob;
-import org.apache.nutch.util.TimingUtil;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.gora.mapreduce.GoraMapper;
+import org.apache.gora.mapreduce.StringComparator;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.util.Tool;
+import org.apache.nutch.crawl.CrawlStatus;
+import org.apache.nutch.metadata.Nutch;
+import org.apache.nutch.storage.StorageUtils;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.util.NutchConfiguration;
+import org.apache.nutch.util.NutchJob;
+import org.apache.nutch.util.NutchTool;
+import org.apache.nutch.util.ToolUtil;
 
-/**
- * The class scans CrawlDB looking for entries with status DB_GONE (404) or
- * DB_DUPLICATE and sends delete requests to indexers for those documents.
- */
+public class CleaningJob extends NutchTool implements Tool {
 
-public class CleaningJob implements Tool {
+  public static final String ARG_COMMIT = "commit";
   private static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
   private Configuration conf;
+
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.STATUS);
+  }
 
   @Override
   public Configuration getConf() {
@@ -60,149 +65,114 @@ public class CleaningJob implements Tool {
     this.conf = conf;
   }
 
-  public static class DBFilter extends
-      Mapper<Text, CrawlDatum, ByteWritable, Text> {
-    private ByteWritable OUT = new ByteWritable(CrawlDatum.STATUS_DB_GONE);
+  public Collection<WebPage.Field> getFields(Job job) {
+    Configuration conf = job.getConfiguration();
+    Collection<WebPage.Field> columns = new HashSet<WebPage.Field>(FIELDS);
+    IndexCleaningFilters filters = new IndexCleaningFilters(conf);
+    columns.addAll(filters.getFields());
+    return columns;
+  }
+
+  public static class CleanMapper extends
+      GoraMapper<String, WebPage, String, WebPage> {
+
+    private IndexCleaningFilters filters;
 
     @Override
-    public void map(Text key, CrawlDatum value,
-        Context context) throws IOException, InterruptedException {
+    protected void setup(Context context) throws IOException {
+      Configuration conf = context.getConfiguration();
+      filters = new IndexCleaningFilters(conf);
+    }
 
-      if (value.getStatus() == CrawlDatum.STATUS_DB_GONE
-          || value.getStatus() == CrawlDatum.STATUS_DB_DUPLICATE) {
-        context.write(OUT, key);
+    @Override
+    public void map(String key, WebPage page, Context context)
+        throws IOException, InterruptedException {
+      try {
+        if (page.getStatus() == CrawlStatus.STATUS_GONE
+            || filters.remove(key, page)) {
+          context.write(key, page);
+        }
+      } catch (IndexingException e) {
+        LOG.warn("Error indexing " + key + ": " + e);
       }
     }
   }
 
-  public static class DeleterReducer extends
-      Reducer<ByteWritable, Text, Text, ByteWritable> {
-    @SuppressWarnings("unused")
-    private static final int NUM_MAX_DELETE_REQUEST = 1000;
-    @SuppressWarnings("unused")
+  public static class CleanReducer extends
+      Reducer<String, WebPage, NullWritable, NullWritable> {
     private int numDeletes = 0;
-    private int totalDeleted = 0;
-
-    private boolean noCommit = false;
-
+    private boolean commit;
     IndexWriters writers = null;
 
     @Override
-    public void setup(Reducer<ByteWritable, Text, Text, ByteWritable>.Context context) {
-      Configuration conf = context.getConfiguration();
-      writers = IndexWriters.get(conf);
+    public void setup(Context job) throws IOException {
+      Configuration conf = job.getConfiguration();
+      writers = new IndexWriters(conf);
       try {
-        writers.open(conf, "Deletion");
+        writers.open(conf);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      noCommit = conf.getBoolean("noCommit", false);
+      commit = conf.getBoolean(ARG_COMMIT, false);
+    }
+
+    public void reduce(String key, Iterable<WebPage> values, Context context)
+        throws IOException {
+      writers.delete(key);
+      numDeletes++;
+      context.getCounter("SolrClean", "DELETED").increment(1);
     }
 
     @Override
     public void cleanup(Context context) throws IOException {
-      // BUFFERING OF CALLS TO INDEXER SHOULD BE HANDLED AT INDEXER LEVEL
-      // if (numDeletes > 0) {
-      // LOG.info("CleaningJob: deleting " + numDeletes + " documents");
-      // // TODO updateRequest.process(solr);
-      // totalDeleted += numDeletes;
-      // }
-
-      if (totalDeleted > 0 && !noCommit) {
+      if (numDeletes > 0 && commit) {
         writers.commit();
       }
-
       writers.close();
-
-      LOG.info("CleaningJob: deleted a total of " + totalDeleted + " documents");
+      LOG.info("CleaningJob: deleted a total of " + numDeletes + " documents");
     }
-
-    @Override
-    public void reduce(ByteWritable key, Iterable<Text> values,
-        Context context) throws IOException {
-      for (Text document : values) {
-        writers.delete(document.toString());
-        totalDeleted++;
-        context.getCounter("CleaningJobStatus", "Deleted documents").increment(1);
-        // if (numDeletes >= NUM_MAX_DELETE_REQUEST) {
-        // LOG.info("CleaningJob: deleting " + numDeletes
-        // + " documents");
-        // // TODO updateRequest.process(solr);
-        // // TODO updateRequest = new UpdateRequest();
-        // writers.delete(key.toString());
-        // totalDeleted += numDeletes;
-        // numDeletes = 0;
-        // }
-      }
-    }
-  }
-
-  public void delete(String crawldb, boolean noCommit) 
-    throws IOException, InterruptedException, ClassNotFoundException {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    long start = System.currentTimeMillis();
-    LOG.info("CleaningJob: starting at " + sdf.format(start));
-
-    Job job = NutchJob.getInstance(getConf());
-    Configuration conf = job.getConfiguration();
-
-    FileInputFormat.addInputPath(job, new Path(crawldb, CrawlDb.CURRENT_NAME));
-    conf.setBoolean("noCommit", noCommit);
-    job.setInputFormatClass(SequenceFileInputFormat.class);
-    job.setOutputFormatClass(NullOutputFormat.class);
-    job.setMapOutputKeyClass(ByteWritable.class);
-    job.setMapOutputValueClass(Text.class);
-    job.setMapperClass(DBFilter.class);
-    job.setReducerClass(DeleterReducer.class);
-    job.setJarByClass(CleaningJob.class);
-
-    job.setJobName("CleaningJob");
-
-    // need to expicitely allow deletions
-    conf.setBoolean(IndexerMapReduce.INDEXER_DELETE, true);
-
-    try{
-      boolean success = job.waitForCompletion(true);
-      if (!success) {
-        String message = "CleaningJob did not succeed, job status:"
-            + job.getStatus().getState() + ", reason: "
-            + job.getStatus().getFailureInfo();
-        LOG.error(message);
-        throw new RuntimeException(message);
-      }
-    } catch (InterruptedException | ClassNotFoundException e) {
-      LOG.error(StringUtils.stringifyException(e));
-      throw e;
-    }
-
-    long end = System.currentTimeMillis();
-    LOG.info("CleaningJob: finished at " + sdf.format(end) + ", elapsed: "
-        + TimingUtil.elapsedTime(start, end));
   }
 
   @Override
-  public int run(String[] args) throws IOException {
+  public Map<String, Object> run(Map<String, Object> args) throws Exception {
+    getConf().setBoolean(ARG_COMMIT, (Boolean) args.get(ARG_COMMIT));
+    currentJob = NutchJob.getInstance(getConf(), "CleaningJob");
+    currentJob.getConfiguration().setClass(
+        "mapreduce.job.output.key.comparator.class", StringComparator.class,
+        RawComparator.class);
+
+    Collection<WebPage.Field> fields = getFields(currentJob);
+    StorageUtils.initMapperJob(currentJob, fields, String.class, WebPage.class,
+        CleanMapper.class);
+    currentJob.setReducerClass(CleanReducer.class);
+    currentJob.setOutputFormatClass(NullOutputFormat.class);
+    currentJob.waitForCompletion(true);
+    ToolUtil.recordJobStatus(null, currentJob, results);
+    return results;
+  }
+
+  public int delete(boolean commit) throws Exception {
+    LOG.info("CleaningJob: starting");
+    run(ToolUtil.toArgMap(ARG_COMMIT, commit));
+    LOG.info("CleaningJob: done");
+    return 0;
+  }
+
+  public int run(String[] args) throws Exception {
     if (args.length < 1) {
-      String usage = "Usage: CleaningJob <crawldb> [-noCommit]";
-      LOG.error("Missing crawldb. " + usage);
-      System.err.println(usage);
+      System.err.println("Usage: CleaningJob [-crawlId <id>] [-noCommit]");
       return 1;
     }
 
-    boolean noCommit = false;
-    if (args.length == 2 && args[1].equals("-noCommit")) {
-      noCommit = true;
+    boolean commit = true;
+    if (args.length == 3 && args[2].equals("-noCommit")) {
+      commit = false;
+    }
+    if (args.length == 3 && "-crawlId".equals(args[0])) {
+      getConf().set(Nutch.CRAWL_ID_KEY, args[1]);
     }
 
-    try {
-      delete(args[0], noCommit);
-    } catch (final Exception e) {
-      LOG.error("CleaningJob: " + StringUtils.stringifyException(e));
-      System.err.println("ERROR CleaningJob: "
-          + StringUtils.stringifyException(e));
-      return -1;
-    }
-    return 0;
+    return delete(commit);
   }
 
   public static void main(String[] args) throws Exception {
@@ -210,4 +180,5 @@ public class CleaningJob implements Tool {
         args);
     System.exit(result);
   }
+
 }

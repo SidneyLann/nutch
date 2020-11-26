@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -29,11 +29,6 @@ import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.apache.wicket.util.time.Duration;
 
 public class DashboardPage extends AbstractBasePage<Object> {
-  /**
-   * 
-   */
-  private static final long serialVersionUID = 1L;
-
   @SpringBean
   private NutchService nutchService;
 
@@ -46,14 +41,10 @@ public class DashboardPage extends AbstractBasePage<Object> {
     panel.add(new Label("jobsRunning", new JobsModel()));
     add(panel);
     add(new BookmarkablePageLink<Void>("viewInstances", InstancesPage.class));
+
   }
 
   private class JobsModel extends LoadableDetachableModel<Integer> {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
     @Override
     protected Integer load() {
       NutchInstance currentInstance = getCurrentInstance();

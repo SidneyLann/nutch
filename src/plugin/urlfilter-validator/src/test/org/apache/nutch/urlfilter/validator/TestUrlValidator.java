@@ -16,20 +16,35 @@
  */
 package org.apache.nutch.urlfilter.validator;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.urlfilter.validator.UrlValidator;
-import org.junit.Assert;
+import org.apache.nutch.util.NutchConfiguration;
+import org.junit.Before;
 import org.junit.Test;
+
+import junit.framework.TestCase;
 
 /**
  * JUnit test case which tests 1. that valid urls are not filtered while invalid
  * ones are filtered. 2. that Urls' scheme, authority, path and query are
- * validated.
+ * validated. Also checks valid length of tld.
  * 
- * @author tejasp
  * 
  */
 
-public class TestUrlValidator {
+public class TestUrlValidator extends TestCase {
+  private Configuration conf;
+  private static int tldLength;
+  private String validUrl;
+  private String invalidUrl;
+  private String preUrl = "http://example.";
+
+  @Before
+  public void setUp() throws Exception {
+    super.setUp();
+    conf = NutchConfiguration.create();
+    tldLength = conf.getInt("urlfilter.tld.length", 8);
+  }
 
   /**
    * Test method for
@@ -39,41 +54,77 @@ public class TestUrlValidator {
   @Test
   public void testFilter() {
     UrlValidator url_validator = new UrlValidator();
-    Assert.assertNotNull(url_validator);
+    url_validator.setConf(conf);
 
-    Assert.assertNull("Filtering on a null object should return null",
+    validUrl = generateValidTld(tldLength);
+    invalidUrl = generateInvalidTld(tldLength);
+
+    assertNotNull(url_validator);
+
+    // invalid urls
+    assertNull("Filtering on a null object should return null",
         url_validator.filter(null));
-    Assert.assertNull("Invalid url: example.com/file[/].html",
+    assertNull("Invalid url: example.com/file[/].html",
         url_validator.filter("example.com/file[/].html"));
-    Assert.assertNull("Invalid url: http://www.example.com/space here.html",
+    assertNull("Invalid url: http://www.example.com/space here.html",
         url_validator.filter("http://www.example.com/space here.html"));
-    Assert.assertNull("Invalid url: /main.html",
-        url_validator.filter("/main.html"));
-    Assert.assertNull("Invalid url: www.example.com/main.html",
+    assertNull("Invalid url: /main.html", url_validator.filter("/main.html"));
+    assertNull("Invalid url: www.example.com/main.html",
         url_validator.filter("www.example.com/main.html"));
-    Assert.assertNull("Invalid url: ftp:www.example.com/main.html",
+    assertNull("Invalid url: ftp:www.example.com/main.html",
         url_validator.filter("ftp:www.example.com/main.html"));
-    Assert.assertNull(
-        "Inalid url: http://999.000.456.32/nutch/trunk/README.txt",
+    assertNull("Inalid url: http://999.000.456.32/nutch/trunk/README.txt",
         url_validator.filter("http://999.000.456.32/nutch/trunk/README.txt"));
-    Assert.assertNull("Invalid url: http://www.example.com/ma|in\\toc.html",
+    assertNull("Invalid url: http://www.example.com/ma|in\\toc.html",
         url_validator.filter(" http://www.example.com/ma|in\\toc.html"));
+    // test tld limit
+    assertNull("InValid url: " + invalidUrl, url_validator.filter(invalidUrl));
 
-    Assert.assertNotNull(
-        "Valid url: https://issues.apache.org/jira/NUTCH-1127",
+    // valid urls
+    assertNotNull("Valid url: https://issues.apache.org/jira/NUTCH-1127",
         url_validator.filter("https://issues.apache.org/jira/NUTCH-1127"));
-    Assert
-        .assertNotNull(
-            "Valid url: http://domain.tld/function.cgi?url=http://fonzi.com/&amp;name=Fonzi&amp;mood=happy&amp;coat=leather",
-            url_validator
-                .filter("http://domain.tld/function.cgi?url=http://fonzi.com/&amp;name=Fonzi&amp;mood=happy&amp;coat=leather"));
-    Assert
-        .assertNotNull(
-            "Valid url: http://validator.w3.org/feed/check.cgi?url=http%3A%2F%2Ffeeds.feedburner.com%2Fperishablepress",
-            url_validator
-                .filter("http://validator.w3.org/feed/check.cgi?url=http%3A%2F%2Ffeeds.feedburner.com%2Fperishablepress"));
-    Assert.assertNotNull("Valid url: ftp://alfa.bravo.pi/foo/bar/plan.pdf",
+    assertNotNull(
+        "Valid url: http://domain.tld/function.cgi?url=http://fonzi.com/&amp;name=Fonzi&amp;mood=happy&amp;coat=leather",
+        url_validator
+            .filter("http://domain.tld/function.cgi?url=http://fonzi.com/&amp;name=Fonzi&amp;mood=happy&amp;coat=leather"));
+    assertNotNull(
+        "Valid url: http://validator.w3.org/feed/check.cgi?url=http%3A%2F%2Ffeeds.feedburner.com%2Fperishablepress",
+        url_validator
+            .filter("http://validator.w3.org/feed/check.cgi?url=http%3A%2F%2Ffeeds.feedburner.com%2Fperishablepress"));
+    assertNotNull("Valid url: ftp://alfa.bravo.pi/foo/bar/plan.pdf",
         url_validator.filter("ftp://alfa.bravo.pi/mike/check/plan.pdf"));
+    // test tld limit
+    assertNotNull("Valid url: " + validUrl, url_validator.filter(validUrl));
+
+  }
+
+  /**
+   * Generate Sample of Valid Tld.
+   */
+  public String generateValidTld(int length) {
+    StringBuffer buffer = new StringBuffer();
+    for (int i = 1; i <= length; i++) {
+
+      char c = (char) ('a' + Math.random() * 26);
+      buffer.append(c);
+    }
+    String tempValidUrl = preUrl + buffer.toString();
+    return tempValidUrl;
+  }
+
+  /**
+   * Generate Sample of Invalid Tld. character
+   */
+  public String generateInvalidTld(int length) {
+
+    StringBuffer buffer = new StringBuffer();
+    for (int i = 1; i <= length + 1; i++) {
+
+      char c = (char) ('a' + Math.random() * 26);
+      buffer.append(c);
+    }
+    String tempInvalidUrl = preUrl + buffer.toString();
+    return tempInvalidUrl;
 
   }
 }

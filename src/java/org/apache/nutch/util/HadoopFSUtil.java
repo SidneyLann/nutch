@@ -29,19 +29,26 @@ public class HadoopFSUtil {
    * Returns PathFilter that passes all paths through.
    */
   public static PathFilter getPassAllFilter() {
-    return arg0 -> true;
+    return new PathFilter() {
+      public boolean accept(Path arg0) {
+        return true;
+      }
+    };
   }
 
   /**
    * Returns PathFilter that passes directories through.
    */
   public static PathFilter getPassDirectoriesFilter(final FileSystem fs) {
-    return path -> {
-      try {
-        return fs.getFileStatus(path).isDirectory();
-      } catch (IOException ioe) {
-        return false;
+    return new PathFilter() {
+      public boolean accept(final Path path) {
+        try {
+          return fs.getFileStatus(path).isDirectory();
+        } catch (IOException ioe) {
+          return false;
+        }
       }
+
     };
   }
 

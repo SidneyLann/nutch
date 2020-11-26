@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -64,7 +64,7 @@ public class RemoteCommandsBatchFactory {
   private RemoteCommand inject() {
     RemoteCommandBuilder builder = RemoteCommandBuilder
         .instance(JobType.INJECT).withCrawlId(crawl.getCrawlId())
-        .withArgument("url_dir", crawl.getSeedDirectory());
+        .withArgument("seedDir", crawl.getSeedDirectory());
     return builder.build();
   }
 

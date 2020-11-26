@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -17,25 +17,21 @@
 package org.apache.nutch.protocol.file;
 
 import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.util.List;
-
+import crawlercommons.robots.BaseRobotRules;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.protocols.Response;
+import org.apache.nutch.protocol.*;
+import org.apache.nutch.storage.ProtocolStatus;
+import org.apache.nutch.storage.WebPage;
+import org.apache.nutch.storage.WebPage.Field;
+import org.apache.nutch.util.NutchConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.net.protocols.Response;
-import org.apache.nutch.protocol.Content;
-import org.apache.nutch.protocol.Protocol;
-import org.apache.nutch.protocol.ProtocolOutput;
-import org.apache.nutch.protocol.ProtocolStatus;
-import org.apache.nutch.protocol.RobotRulesParser;
-import org.apache.nutch.util.NutchConfiguration;
-
-import crawlercommons.robots.BaseRobotRules;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashSet;
 
 /**
  * This class is a protocol plugin used for file: scheme. It creates
@@ -43,17 +39,23 @@ import crawlercommons.robots.BaseRobotRules;
  * Configurable parameters are {@code file.content.limit} and
  * {@code file.crawl.parent} in nutch-default.xml defined under
  * "file properties" section.
- * 
- * @author John Xing
  */
 public class File implements Protocol {
 
   protected static final Logger LOG = LoggerFactory
       .getLogger(MethodHandles.lookup().lookupClass());
 
+  private static final Collection<WebPage.Field> FIELDS = new HashSet<WebPage.Field>();
+
+  static {
+    FIELDS.add(WebPage.Field.MODIFIED_TIME);
+    FIELDS.add(WebPage.Field.HEADERS);
+  }
+
   static final int MAX_REDIRECTS = 5;
 
   int maxContentLength;
+
   boolean crawlParents;
 
   /**
@@ -64,6 +66,7 @@ public class File implements Protocol {
 
   private Configuration conf;
 
+  // constructor
   public File() {
   }
 
@@ -72,7 +75,7 @@ public class File implements Protocol {
    */
   public void setConf(Configuration conf) {
     this.conf = conf;
-    this.maxContentLength = conf.getInt("file.content.limit", 1024 * 1024);
+    this.maxContentLength = conf.getInt("file.content.limit", 64 * 1024);
     this.crawlParents = conf.getBoolean("file.crawl.parent", true);
     this.symlinksAsRedirects = conf.getBoolean(
         "file.crawl.redirect_noncanonical", true);
@@ -86,7 +89,7 @@ public class File implements Protocol {
   }
 
   /**
-   * Set the length after at which content is truncated.
+   * Set the point at which content is truncated.
    */
   public void setMaxContentLength(int maxContentLength) {
     this.maxContentLength = maxContentLength;
@@ -98,13 +101,13 @@ public class File implements Protocol {
    * 
    * @param url
    *          Text containing the url
-   * @param datum
-   *          The CrawlDatum object corresponding to the url
+   * @param page
+   *          {@link WebPage} object relative to the URL
    * 
    * @return {@link ProtocolOutput} object for the content of the file indicated
    *         by url
    */
-  public ProtocolOutput getProtocolOutput(Text url, CrawlDatum datum) {
+  public ProtocolOutput getProtocolOutput(String url, WebPage page) {
     String urlString = url.toString();
     try {
       URL u = new URL(urlString);
@@ -113,9 +116,7 @@ public class File implements Protocol {
 
       while (true) {
         FileResponse response;
-        response = new FileResponse(u, datum, this, getConf()); // make a
-                                                                // request
-
+        response = new FileResponse(u, page, this, getConf()); // make a request
         int code = response.getCode();
 
         if (code == 200) { // got a good response
@@ -123,15 +124,15 @@ public class File implements Protocol {
 
         } else if (code == 304) { // got not modified
           return new ProtocolOutput(response.toContent(),
-              ProtocolStatus.STATUS_NOTMODIFIED);
+              ProtocolStatusUtils.STATUS_NOTMODIFIED);
 
         } else if (code == 401) { // access denied / no read permissions
-          return new ProtocolOutput(response.toContent(), new ProtocolStatus(
-              ProtocolStatus.ACCESS_DENIED));
+          return new ProtocolOutput(response.toContent(),
+              ProtocolStatusUtils.makeStatus(ProtocolStatusUtils.ACCESS_DENIED));
 
         } else if (code == 404) { // no such file
           return new ProtocolOutput(response.toContent(),
-              ProtocolStatus.STATUS_NOTFOUND);
+              ProtocolStatusUtils.STATUS_NOTFOUND);
 
         } else if (code >= 300 && code < 400) { // handle redirect
           u = new URL(response.getHeader("Location"));
@@ -139,12 +140,13 @@ public class File implements Protocol {
             LOG.trace("redirect to " + u);
           }
           if (symlinksAsRedirects) {
-            return new ProtocolOutput(response.toContent(), new ProtocolStatus(
-                ProtocolStatus.MOVED, u));
+            return new ProtocolOutput(response.toContent(),
+                ProtocolStatusUtils.makeStatus(ProtocolStatusUtils.MOVED, u));
           } else if (redirects == MAX_REDIRECTS) {
             LOG.trace("Too many redirects: {}", url);
-            return new ProtocolOutput(response.toContent(), new ProtocolStatus(
-                ProtocolStatus.REDIR_EXCEEDED, u));
+            return new ProtocolOutput(response.toContent(),
+                ProtocolStatusUtils.makeStatus(
+                    ProtocolStatusUtils.REDIR_EXCEEDED, u));
           }
           redirects++;
 
@@ -154,8 +156,15 @@ public class File implements Protocol {
       }
     } catch (Exception e) {
       e.printStackTrace();
-      return new ProtocolOutput(null, new ProtocolStatus(e));
+      ProtocolStatus ps = ProtocolStatusUtils.makeStatus(
+          ProtocolStatusCodes.EXCEPTION, e.toString());
+      return new ProtocolOutput(null, ps);
     }
+  }
+
+  @Override
+  public Collection<Field> getFields() {
+    return FIELDS;
   }
 
   /**
@@ -191,19 +200,20 @@ public class File implements Protocol {
     if (maxContentLength != Integer.MIN_VALUE) // set maxContentLength
       file.setMaxContentLength(maxContentLength);
 
-    // set log level
-    // LOG.setLevel(Level.parse((new String(logLevel)).toUpperCase()));
-
-    ProtocolOutput output = file.getProtocolOutput(new Text(urlString),
-        new CrawlDatum());
+    ProtocolOutput output = file.getProtocolOutput(urlString, WebPage
+        .newBuilder().build());
     Content content = output.getContent();
 
     System.err.println("URL: " + content.getUrl());
-    System.err.println("Status: " + output.getStatus());
-    System.err.println("Content-Type: " + content.getContentType());
-    System.err.println("Content-Length: "
+    ProtocolStatus status = output.getStatus();
+    String protocolMessage = ProtocolStatusUtils.getMessage(status);
+    System.err.println("Status: "
+        + ProtocolStatusUtils.getName(status.getCode())
+        + (protocolMessage == null ? "" : ": " + protocolMessage));
+    System.out.println("Content-Type: " + content.getContentType());
+    System.out.println("Content-Length: "
         + content.getMetadata().get(Response.CONTENT_LENGTH));
-    System.err.println("Last-Modified: "
+    System.out.println("Last-Modified: "
         + content.getMetadata().get(Response.LAST_MODIFIED));
     String redirectLocation = content.getMetadata().get("Location");
     if (redirectLocation != null) {
@@ -211,7 +221,7 @@ public class File implements Protocol {
     }
 
     if (dumpContent) {
-      System.out.print(new String(content.getContent()));
+      System.out.print(new String(content.getContent(), StandardCharsets.UTF_8));
     }
 
     file = null;
@@ -221,10 +231,7 @@ public class File implements Protocol {
    * No robots parsing is done for file protocol. So this returns a set of empty
    * rules which will allow every url.
    */
-  @Override
-  public BaseRobotRules getRobotRules(Text url, CrawlDatum datum,
-      List<Content> robotsTxtContent) {
+  public BaseRobotRules getRobotRules(String url, WebPage page) {
     return RobotRulesParser.EMPTY_RULES;
   }
-
 }

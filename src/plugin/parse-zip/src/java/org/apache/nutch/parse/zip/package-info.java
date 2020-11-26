@@ -19,4 +19,3 @@
  * Parse ZIP files: embedded files are recursively passed to appropriate parsers.
  */
 package org.apache.nutch.parse.zip;
-

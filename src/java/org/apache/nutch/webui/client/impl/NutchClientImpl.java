@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -68,9 +68,8 @@ public class NutchClientImpl implements NutchClient {
 
   @Override
   public String executeJob(JobConfig jobConfig) {
-    JobInfo jobInfo = nutchResource.path("/job/create").type(APPLICATION_JSON)
-        .post(JobInfo.class, jobConfig);
-    return jobInfo.getId();
+    return nutchResource.path("/job/create").type(APPLICATION_JSON)
+        .post(String.class, jobConfig);
   }
 
   @Override

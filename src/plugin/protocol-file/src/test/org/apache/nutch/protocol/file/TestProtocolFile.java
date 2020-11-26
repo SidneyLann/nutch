@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.file;
 
 // Hadoop imports
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 
-// Nutch imports
-import org.apache.nutch.crawl.CrawlDatum;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.net.protocols.Response;
 import org.apache.nutch.protocol.Protocol;
 import org.apache.nutch.protocol.ProtocolException;
 import org.apache.nutch.protocol.ProtocolFactory;
+import org.apache.nutch.protocol.ProtocolNotFound;
 import org.apache.nutch.protocol.ProtocolOutput;
-import org.apache.nutch.protocol.ProtocolStatus;
+import org.apache.nutch.protocol.ProtocolStatusCodes;
+import org.apache.nutch.storage.WebPage;
 import org.apache.nutch.util.NutchConfiguration;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * @author mattmann
@@ -39,7 +39,7 @@ import org.junit.Test;
  * 
  *          <p>
  *          Unit tests for the {@link File}Protocol.
- *          </p>
+ *
  *          .
  */
 public class TestProtocolFile {
@@ -50,8 +50,6 @@ public class TestProtocolFile {
   private static final String[] testTextFiles = new String[] {
       "testprotocolfile.txt", "testprotocolfile_(encoded).txt",
       "testprotocolfile_%28encoded%29.txt" };
-
-  private static final CrawlDatum datum = new CrawlDatum();
 
   private static final String expectedMimeType = "text/plain";
 
@@ -72,26 +70,29 @@ public class TestProtocolFile {
   /**
    * Tests the setting of the <code>Response.CONTENT_TYPE</code> metadata field.
    * 
+   * @throws ProtocolNotFound
+   * 
    * @since NUTCH-384
    * 
    */
-  public void setContentType(String testTextFile) throws ProtocolException {
+  public void setContentType(String testTextFile) throws ProtocolNotFound {
     String urlString = "file:" + sampleDir + fileSeparator + testTextFile;
-    Assert.assertNotNull(urlString);
+    assertNotNull(urlString);
+    WebPage datum = WebPage.newBuilder().build();
     Protocol protocol = new ProtocolFactory(conf).getProtocol(urlString);
-    ProtocolOutput output = protocol.getProtocolOutput(new Text(urlString),
-        datum);
-    Assert.assertNotNull(output);
-    Assert.assertEquals("Status code: [" + output.getStatus().getCode()
-        + "], not equal to: [" + ProtocolStatus.SUCCESS + "]: args: ["
-        + output.getStatus().getArgs() + "]", ProtocolStatus.SUCCESS, output
-        .getStatus().getCode());
-    Assert.assertNotNull(output.getContent());
-    Assert.assertNotNull(output.getContent().getContentType());
-    Assert.assertEquals(expectedMimeType, output.getContent().getContentType());
-    Assert.assertNotNull(output.getContent().getMetadata());
-    Assert.assertEquals(expectedMimeType, output.getContent().getMetadata()
-        .get(Response.CONTENT_TYPE));
+    ProtocolOutput output = protocol.getProtocolOutput(urlString, datum);
+    assertNotNull(output);
+
+    assertEquals("Status code: [" + output.getStatus().getCode()
+        + "], not equal to: [" + ProtocolStatusCodes.SUCCESS + "]: args: ["
+        + output.getStatus().getArgs() + "]",
+        (Integer) ProtocolStatusCodes.SUCCESS, output.getStatus().getCode());
+    assertNotNull(output.getContent());
+    assertNotNull(output.getContent().getContentType());
+    assertEquals(expectedMimeType, output.getContent().getContentType());
+    assertNotNull(output.getContent().getMetadata());
+    assertEquals(expectedMimeType,
+        output.getContent().getMetadata().get(Response.CONTENT_TYPE));
 
   }
 

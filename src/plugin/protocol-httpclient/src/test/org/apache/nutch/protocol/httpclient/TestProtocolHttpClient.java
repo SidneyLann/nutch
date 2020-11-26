@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.protocol.httpclient;
 
-import java.net.URL;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.protocols.Response;
+import org.apache.nutch.storage.WebPage;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.handler.ContextHandler;
-import org.mortbay.jetty.servlet.ServletHandler;
-import org.mortbay.jetty.servlet.SessionHandler;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.nutch.crawl.CrawlDatum;
-import org.apache.nutch.net.protocols.Response;
+import org.mortbay.jetty.nio.SelectChannelConnector;
+import org.mortbay.jetty.servlet.Context;
+import org.mortbay.jetty.servlet.ServletHolder;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test cases for protocol-httpclient.
+ * 
+ * @author Susam Pal
  */
 public class TestProtocolHttpClient {
 
@@ -44,16 +49,22 @@ public class TestProtocolHttpClient {
   @Before
   public void setUp() throws Exception {
 
-    ContextHandler context = new ContextHandler();
-    context.setContextPath("/");
-    context.setResourceBase(RES_DIR);
-    ServletHandler sh = new ServletHandler();
-    sh.addServletWithMapping("org.apache.jasper.servlet.JspServlet", "*.jsp");
-    context.addHandler(sh);
-    context.addHandler(new SessionHandler());
-
     server = new Server();
-    server.addHandler(context);
+
+    // Context scontext = new Context();
+    // scontext.setContextPath("/");
+    // scontext.setResourceBase(RES_DIR);
+    // // servlet handler?
+    // scontext.addServlet("JSP", "*.jsp",
+    // "org.apache.jasper.servlet.JspServlet");
+    // scontext.addHandler(new ResourceHandler());
+
+    Context root = new Context(server, "/", Context.SESSIONS);
+    root.setContextPath("/");
+    root.setResourceBase(RES_DIR);
+    ServletHolder sh = new ServletHolder(
+        org.apache.jasper.servlet.JspServlet.class);
+    root.addServlet(sh, "*.jsp");
 
     conf = new Configuration();
     conf.addResource("nutch-default.xml");
@@ -66,11 +77,6 @@ public class TestProtocolHttpClient {
   @After
   public void tearDown() throws Exception {
     server.stop();
-    for (int i = 0; i < 5; i++) {
-      if (!server.isStopped()) {
-       Thread.sleep(1000);
-      }
-    }
   }
 
   /**
@@ -84,6 +90,7 @@ public class TestProtocolHttpClient {
     startServer(47500);
     fetchPage("/cookies.jsp", 200);
     fetchPage("/cookies.jsp?cookie=yes", 200);
+    tearDown();
   }
 
   /**
@@ -96,6 +103,7 @@ public class TestProtocolHttpClient {
   public void testNoPreemptiveAuth() throws Exception {
     startServer(47500);
     fetchPage("/noauth.jsp", 200);
+    tearDown();
   }
 
   /**
@@ -108,6 +116,7 @@ public class TestProtocolHttpClient {
   public void testDefaultCredentials() throws Exception {
     startServer(47502);
     fetchPage("/basic.jsp", 200);
+    tearDown();
   }
 
   /**
@@ -122,7 +131,7 @@ public class TestProtocolHttpClient {
     fetchPage("/basic.jsp", 200);
     fetchPage("/basic.jsp?case=1", 200);
     fetchPage("/basic.jsp?case=2", 200);
-    server.start();
+    tearDown();
   }
 
   /**
@@ -139,6 +148,7 @@ public class TestProtocolHttpClient {
     fetchPage("/basic.jsp", 200);
     fetchPage("/basic.jsp?case=1", 401);
     fetchPage("/basic.jsp?case=2", 401);
+    tearDown();
   }
 
   /**
@@ -151,6 +161,7 @@ public class TestProtocolHttpClient {
   public void testDigestAuth() throws Exception {
     startServer(47500);
     fetchPage("/digest.jsp", 200);
+    tearDown();
   }
 
   /**
@@ -163,34 +174,26 @@ public class TestProtocolHttpClient {
   public void testNtlmAuth() throws Exception {
     startServer(47501);
     fetchPage("/ntlm.jsp", 200);
+    tearDown();
   }
 
   /**
    * Starts the Jetty server at a specified port.
-   *
-   * Will try up to 10 ports to find an available port to use.
-   *
+   * 
    * @param portno
    *          Port number.
    * @throws Exception
    *           When an error occurs.
    */
   private void startServer(int portno) throws Exception {
-    SocketConnector listener = new SocketConnector();
-    listener.setHost("127.0.0.1");
-    server.addConnector(listener);
-    for (int p = portno; p < portno + 10; p++) {
-      port = portno;
-      listener.setPort(port);
-      try {
-        server.start();
-        break;
-      } catch (Exception e) {
-        if (p == portno + 9) {
-          throw e;
-        }
-      }
-    }
+    port = portno;
+
+    SelectChannelConnector connector1 = new SelectChannelConnector();
+    connector1.setHost("127.0.0.1");
+    connector1.setPort(port);
+
+    server.addConnector(connector1);
+    server.start();
   }
 
   /**
@@ -208,9 +211,21 @@ public class TestProtocolHttpClient {
   private void fetchPage(String page, int expectedCode) throws Exception {
     URL url = new URL("http", "127.0.0.1", port, page);
     Response response = null;
-    response = http.getResponse(url, new CrawlDatum(), true);
+    response = http.getResponse(url, WebPage.newBuilder().build(), true);
 
     int code = response.getCode();
-    Assert.assertEquals("HTTP Status Code for " + url, expectedCode, code);
+    assertEquals("HTTP Status Code for " + url, expectedCode, code);
+  }
+
+  /**
+   * Returns an URL to the specified page.
+   * 
+   * @param page
+   *          Page available in the local Jetty server.
+   * @throws MalformedURLException
+   *           If an URL can not be formed.
+   */
+  private URL getURL(String page) throws MalformedURLException {
+    return new URL("http", "127.0.0.1", port, page);
   }
 }

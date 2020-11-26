@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Based on EasyX509TrustManager from commons-httpclient.
+ */
+
 package org.apache.nutch.protocol.httpclient;
 
 import java.security.KeyStore;
@@ -26,9 +30,6 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-/*
- * Based on EasyX509TrustManager from commons-httpclient.
- */
 public class DummyX509TrustManager implements X509TrustManager {
   private X509TrustManager standardTrustManager = null;
 

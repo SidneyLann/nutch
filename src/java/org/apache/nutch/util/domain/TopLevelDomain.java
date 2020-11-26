@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nutch.util.domain;
 
 /**
@@ -23,11 +24,8 @@ package org.apache.nutch.util.domain;
  * top-level domain is <code>com</code>.
  * 
  * @author Enis Soztutar &lt;enis.soz.nutch@gmail.com&gt;
- * 
- * @see <a href="http://www.iana.org/"> iana.org</a>
- * 
- * @see <a href="http://en.wikipedia.org/wiki/Top-level_domain">
- *      Top-level_domain</a>
+ * @see <a href="http://www.iana.org/">http://www.iana.org/</a>
+ * @see <a href="http://en.wikipedia.org/wiki/Top-level_domain">http://en.wikipedia.org/wiki/Top-level_domain</a>
  */
 public class TopLevelDomain extends DomainSuffix {
 

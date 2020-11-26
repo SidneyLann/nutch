@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -22,6 +22,7 @@ import static de.agilecoders.wicket.core.markup.html.bootstrap.navbar.NavbarComp
 import java.util.List;
 
 import org.apache.nutch.webui.model.NutchInstance;
+import org.apache.nutch.webui.pages.auth.AuthenticatedWebPage;
 import org.apache.nutch.webui.pages.crawls.CrawlsPage;
 import org.apache.nutch.webui.pages.instances.InstancesPage;
 import org.apache.nutch.webui.pages.menu.VerticalMenu;
@@ -56,12 +57,7 @@ import de.agilecoders.wicket.core.markup.html.bootstrap.navbar.NavbarComponents;
 import de.agilecoders.wicket.core.markup.html.bootstrap.navbar.NavbarDropDownButton;
 import de.agilecoders.wicket.extensions.markup.html.bootstrap.icon.FontAwesomeIconType;
 
-public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
-  /**
-   * 
-   */
-  private static final long serialVersionUID = 1L;
-
+public abstract class AbstractBasePage<T> extends GenericWebPage<T> implements AuthenticatedWebPage {
   @SpringBean
   private NutchService service;
 
@@ -110,11 +106,6 @@ public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
 
   protected Component addUserMenu() {
     DropDownButton userMenu = new NavbarDropDownButton(Model.of("Username")) {
-      /**
-       * 
-       */
-      private static final long serialVersionUID = 1L;
-
       @Override
       protected List<AbstractLink> newSubMenuButtons(final String buttonMarkupId) {
         List<AbstractLink> subMenu = Lists.newArrayList();
@@ -135,11 +126,6 @@ public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
     IModel<String> instanceName = PropertyModel.of(currentInstance, "name");
     DropDownButton instancesMenu = new NavbarDropDownButton(instanceName) {
 
-      /**
-       * 
-       */
-      private static final long serialVersionUID = 1L;
-
       @Override
       protected List<AbstractLink> newSubMenuButtons(String buttonMarkupId) {
         List<NutchInstance> instances = instanceService.getInstances();
@@ -147,11 +133,6 @@ public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
         for (NutchInstance instance : instances) {
           subMenu.add(new Link<NutchInstance>(buttonMarkupId, Model
               .of(instance)) {
-            /**
-                 * 
-                 */
-                private static final long serialVersionUID = 1L;
-
             @Override
             public void onClick() {
               currentInstance.setObject(getModelObject());
@@ -178,11 +159,6 @@ public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
   }
 
   private class InstanceModel extends LoadableDetachableModel<NutchInstance> {
-
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
 
     @Override
     public void setObject(NutchInstance instance) {

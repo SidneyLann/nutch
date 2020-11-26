@@ -17,7 +17,7 @@
 -->
 <plugin
    id="index-metadata"
-   name="Index Metadata"
+   name="Metadata Indexing Filter"
    version="1.0.0"
    provider-name="nutch.org">
 
@@ -33,7 +33,7 @@
 
 
    <extension id="org.apache.nutch.indexer.metadata"
-              name="Nutch metadata indexer"
+              name="Nutch Metadata Indexing Filter"
               point="org.apache.nutch.indexer.IndexingFilter">
       <implementation id="MetadataIndexer"
                       class="org.apache.nutch.indexer.metadata.MetadataIndexer"/>
